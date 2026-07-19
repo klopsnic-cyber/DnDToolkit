@@ -1,0 +1,170 @@
+{
+  "persoenlichkeit": [
+    "freundlich und redselig", "mürrisch, aber ehrlich", "verschlagen und geschäftstüchtig", "nervös und schreckhaft",
+    "stolz auf die eigene Ware", "gelangweilt und wortkarg", "übertrieben höflich", "neugierig und tratschsüchtig",
+    "abergläubisch", "großspurig und prahlerisch", "geizig bis ins Mark", "warmherzig und großzügig",
+    "misstrauisch gegenüber Fremden", "ständig in Eile", "philosophisch veranlagt", "melancholisch und nostalgisch",
+    "aufbrausend, beruhigt sich aber schnell", "charmant und schmeichlerisch", "pedantisch ordentlich", "chaotisch, findet aber alles"
+  ],
+  "eigenheit": [
+    "poliert ständig die Ware", "spricht mit der Ladenkatze", "vergisst dauernd Namen", "summt beim Rechnen",
+    "hat für alles eine Anekdote", "zählt Münzen dreimal nach", "trägt viel zu viele Ringe", "flucht in einer fremden Sprache",
+    "notiert alles in einem zerfledderten Buch", "bietet jedem Kunden Tee an", "hat ein Glasauge, das juckt",
+    "sammelt seltsame Kuriositäten unterm Tresen", "erzählt von 'besseren Zeiten'", "misstraut Magiern zutiefst",
+    "verwechselt ständig links und rechts", "hat panische Angst vor Mimics", "spricht von sich in der dritten Person",
+    "kaut auf einem Kräuterstängel", "hat eine Narbe mit Geschichte", "wettet gern um Kleinigkeiten"
+  ],
+  "stimme": [
+    "tiefe, raue Stimme", "piepsig und schnell", "bedächtig und langsam", "singender Tonfall", "heiseres Flüstern",
+    "dröhnend laut", "vornehm-geschliffen", "breiter Dialekt", "leicht lispelnd", "monoton", "melodisch und warm",
+    "abgehackt, kurze Sätze"
+  ],
+  "feilschen": [
+    { "label": "Feilscht leidenschaftlich gern", "mod": "Start +25 %, mit Handeln bis −10 % möglich" },
+    { "label": "Festpreise, keine Diskussion", "mod": "Preise wie ausgezeichnet" },
+    { "label": "Gibt Stammkunden Rabatt", "mod": "−10 % ab dem zweiten Besuch" },
+    { "label": "Leicht über den Tisch zu ziehen", "mod": "Erfolgreiche Überzeugen-Probe (SG 12): −15 %" },
+    { "label": "Wittert bei Abenteurern Gold", "mod": "+20 % Aufschlag für Bewaffnete" },
+    { "label": "Tauschhandel bevorzugt", "mod": "−10 % bei Zahlung in Waren" }
+  ],
+  "geheimnis": [
+    "schuldet der Diebesgilde Geld", "hehlt nebenbei gestohlene Ware", "ist eigentlich adliger Herkunft",
+    "sucht heimlich einen verschwundenen Bruder", "bezahlt Schutzgeld und hasst es", "war früher Abenteurer, Knie kaputt",
+    "verehrt insgeheim einen verbotenen Gott", "besitzt eine Karte zu einem alten Grab", "ist Informant der Stadtwache",
+    "hortet den Gewinn unter dem Dielenboden", "hat Spielschulden in der Taverne", "verkauft Auserwählten 'besondere Ware' unter der Hand"
+  ],
+  "ladenName": {
+    "praefix": ["Zum Goldenen", "Zur Alten", "Zum Eisernen", "Zur Silbernen", "Zum Tanzenden", "Zur Feurigen", "Zum Krummen", "Zur Grauen", "Zum Flinken", "Zur Ehrlichen"],
+    "suffixM": ["Amboss", "Greif", "Drachen", "Kessel", "Anker", "Falken", "Hammer", "Becher", "Wanderer", "Fuchs"],
+    "suffixF": ["Klinge", "Laterne", "Eule", "Krone", "Rose", "Waage", "Truhe", "Feder", "Flasche", "Distel"]
+  },
+  "qualitaet": [
+    { "id": "aermlich", "label": "Ärmlich", "preisFaktor": 0.8, "magieChance": 0, "raritaeten": [] },
+    { "id": "einfach", "label": "Einfach", "preisFaktor": 1.0, "magieChance": 0.25, "raritaeten": ["Common"] },
+    { "id": "gut", "label": "Gut sortiert", "preisFaktor": 1.15, "magieChance": 0.6, "raritaeten": ["Common", "Uncommon"] },
+    { "id": "exquisit", "label": "Exquisit", "preisFaktor": 1.4, "magieChance": 1, "raritaeten": ["Common", "Uncommon", "Rare"] }
+  ],
+  "laeden": [
+    {
+      "id": "schmiede", "label": "Schmiede", "icon": "⚒️",
+      "filter": { "cat": ["weapon", "armor"] },
+      "anzahl": [8, 14]
+    },
+    {
+      "id": "waffen", "label": "Waffenhändler", "icon": "⚔️",
+      "filter": { "cat": ["weapon"], "gearCat": ["ammunition"] },
+      "anzahl": [10, 16]
+    },
+    {
+      "id": "ruestung", "label": "Rüstungsschmied", "icon": "🛡️",
+      "filter": { "cat": ["armor"] },
+      "anzahl": [6, 12]
+    },
+    {
+      "id": "kraemer", "label": "Krämerladen", "icon": "🧺",
+      "filter": { "gearCat": ["standard-gear", "kits", "equipment-packs"] },
+      "anzahl": [12, 20]
+    },
+    {
+      "id": "abenteurer", "label": "Abenteurerbedarf", "icon": "🎒",
+      "filter": { "gearCat": ["standard-gear", "kits", "equipment-packs", "ammunition"], "toolCat": ["Other Tools"] },
+      "anzahl": [12, 20]
+    },
+    {
+      "id": "magie", "label": "Magiebedarf", "icon": "🔮",
+      "filter": { "gearCat": ["arcane-foci", "druidic-foci", "holy-symbols"] },
+      "extraMagie": 4,
+      "anzahl": [5, 9]
+    },
+    {
+      "id": "alchemist", "label": "Alchemist", "icon": "⚗️",
+      "custom": "alchemie",
+      "extraMagieKat": "potion", "extraMagie": 3,
+      "anzahl": [8, 12]
+    },
+    {
+      "id": "kraeuter", "label": "Kräuterhandlung", "icon": "🌿",
+      "custom": "kraeuter",
+      "anzahl": [8, 12]
+    },
+    {
+      "id": "juwelier", "label": "Juwelier", "icon": "💎",
+      "custom": "juwelen",
+      "anzahl": [8, 12]
+    },
+    {
+      "id": "werkzeug", "label": "Handwerksbedarf", "icon": "🔨",
+      "filter": { "cat": ["tools"] },
+      "anzahl": [8, 14]
+    },
+    {
+      "id": "stall", "label": "Stall & Fuhrwerk", "icon": "🐴",
+      "filter": { "cat": ["mounts-and-vehicles"] },
+      "anzahl": [6, 10]
+    },
+    {
+      "id": "kuriositaeten", "label": "Kuriositätenladen", "icon": "🗝️",
+      "custom": "kuriositaeten",
+      "extraMagie": 2,
+      "anzahl": [8, 12]
+    }
+  ],
+  "customItems": {
+    "alchemie": [
+      { "name": "Heiltrank (Potion of Healing)", "preis": "50 gp", "desc": "Stellt 2W4+2 Trefferpunkte wieder her." },
+      { "name": "Alchemistenfeuer", "preis": "50 gp", "desc": "Klebrige, brennbare Flüssigkeit. 1W4 Feuerschaden pro Runde." },
+      { "name": "Säureflasche", "preis": "25 gp", "desc": "2W6 Säureschaden als Wurfwaffe." },
+      { "name": "Gegengift", "preis": "50 gp", "desc": "Vorteil auf Rettungswürfe gegen Gift für 1 Stunde." },
+      { "name": "Basiliskenatem-Essenz", "preis": "80 gp", "desc": "Zweifelhafte Tinktur, angeblich versteinerungshemmend." },
+      { "name": "Rauchflasche", "preis": "30 gp", "desc": "Erzeugt eine 10-Fuß-Rauchwolke." },
+      { "name": "Leuchtöl", "preis": "15 gp", "desc": "Getränkte Objekte leuchten 8 Stunden schwach." },
+      { "name": "Schlaftrunk", "preis": "60 gp", "desc": "KON-Rettungswurf SG 13 oder 1 Stunde tiefer Schlaf." },
+      { "name": "Feuerwerkspulver", "preis": "20 gp", "desc": "Lauter Knall, buntes Licht. Beeindruckt Bauern." },
+      { "name": "Tinte des Fälschers", "preis": "40 gp", "desc": "Verblasst nach drei Tagen spurlos." },
+      { "name": "Frostsalbe", "preis": "35 gp", "desc": "Lindert Verbrennungen, kühlt Getränke." },
+      { "name": "Stinkbombe", "preis": "25 gp", "desc": "KON-Rettungswurf SG 12 oder 1 Runde würgen." }
+    ],
+    "kraeuter": [
+      { "name": "Königsblatt", "preis": "8 gp", "desc": "Tee daraus gibt Vorteil auf den nächsten Todesrettungswurf... sagt man." },
+      { "name": "Wolfswurz", "preis": "10 gp", "desc": "Schutz gegen Lykanthropen, als Amulett getragen." },
+      { "name": "Silberdorn", "preis": "15 gp", "desc": "Zutat für Heiltränke." },
+      { "name": "Traumkraut", "preis": "12 gp", "desc": "Geraucht: lebhafte, manchmal prophetische Träume." },
+      { "name": "Bitterwurz", "preis": "5 gp", "desc": "Gegen Übelkeit und Kater." },
+      { "name": "Feenmoos", "preis": "20 gp", "desc": "Leuchtet schwach im Dunkeln. Beliebt bei Druiden." },
+      { "name": "Grabesröschen", "preis": "18 gp", "desc": "Hält angeblich Untote fern. Keine Garantie." },
+      { "name": "Heilerkraut-Bündel", "preis": "6 gp", "desc": "Verdoppelt die Wirkung eines Heilerkits (1 Anwendung)." },
+      { "name": "Pfefferschote 'Drachenzunge'", "preis": "3 gp", "desc": "Extrem scharf. Mutprobe in jeder Taverne." },
+      { "name": "Mondblüte", "preis": "25 gp", "desc": "Blüht nur bei Vollmond. Zutat für Illusionstränke." },
+      { "name": "Eisenrinde", "preis": "9 gp", "desc": "Aufguss stärkt die Abwehrkräfte (rein zeremoniell)." },
+      { "name": "Sumpflichtpilz", "preis": "14 gp", "desc": "Essbar. Wahrscheinlich." }
+    ],
+    "juwelen": [
+      { "name": "Achat", "preis": "10 gp", "desc": "Gebänderter Schmuckstein." },
+      { "name": "Obsidian", "preis": "10 gp", "desc": "Schwarzes Vulkanglas." },
+      { "name": "Mondstein", "preis": "50 gp", "desc": "Milchig schimmernder Stein." },
+      { "name": "Onyx", "preis": "50 gp", "desc": "Tiefschwarz, beliebt bei Nekromanten – fragt der Juwelier lieber nicht." },
+      { "name": "Granat", "preis": "100 gp", "desc": "Dunkelroter Edelstein." },
+      { "name": "Perle", "preis": "100 gp", "desc": "Auch Materialkomponente für Identifizieren." },
+      { "name": "Topas", "preis": "500 gp", "desc": "Goldgelber Edelstein." },
+      { "name": "Saphir", "preis": "1000 gp", "desc": "Königsblau, makellos geschliffen." },
+      { "name": "Diamant (klein)", "preis": "500 gp", "desc": "Materialkomponente für Wiederbeleben." },
+      { "name": "Silberring mit Gravur", "preis": "25 gp", "desc": "Gravur nach Wunsch, dauert einen Tag." },
+      { "name": "Goldkette", "preis": "80 gp", "desc": "Feine Handwerksarbeit." },
+      { "name": "Siegelring", "preis": "40 gp", "desc": "Mit frei wählbarem Wappen." }
+    ],
+    "kuriositaeten": [
+      { "name": "Karte mit unbekanntem Küstenverlauf", "preis": "30 gp", "desc": "Niemand erkennt die Küste. Der Händler schwört, sie sei echt." },
+      { "name": "Verrostete Zwergenkrone", "preis": "120 gp", "desc": "Angeblich aus einer verlorenen Festung." },
+      { "name": "Ausgestopfter Zwergpfau", "preis": "15 gp", "desc": "Die Glasaugen scheinen einem zu folgen." },
+      { "name": "Flasche mit ewigem Nebel", "preis": "45 gp", "desc": "Der Nebel im Inneren wirbelt ohne Unterlass." },
+      { "name": "Würfelset aus Drachenknochen", "preis": "60 gp", "desc": "Fühlt sich immer warm an. Würfelt verdächtig oft die 20." },
+      { "name": "Schrumpfkopf eines Goblins", "preis": "25 gp", "desc": "Flüstert nachts. Vermutlich Einbildung." },
+      { "name": "Sternenkarte einer fremden Welt", "preis": "75 gp", "desc": "Die Sternbilder existieren nicht. Noch nicht." },
+      { "name": "Einzelner linker Handschuh, sehr fein", "preis": "10 gp", "desc": "Der rechte wird verzweifelt gesucht. Finderlohn möglich." },
+      { "name": "Spieluhr mit unbekannter Melodie", "preis": "90 gp", "desc": "Wer sie hört, summt die Melodie tagelang." },
+      { "name": "Versteinertes Drachenei (angeblich)", "preis": "200 gp", "desc": "Könnte auch einfach ein runder Stein sein." },
+      { "name": "Schlüssel ohne Schloss", "preis": "35 gp", "desc": "Kunstvoll gefertigt. Irgendwo wartet die passende Tür." },
+      { "name": "Porträt, das die Augen verdreht", "preis": "55 gp", "desc": "Nur wenn niemand direkt hinsieht." }
+    ]
+  }
+}

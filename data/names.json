@@ -1,0 +1,56 @@
+{
+  "mensch": {
+    "label": "Mensch",
+    "m": ["Aldric", "Berrik", "Cedric", "Doran", "Edrik", "Falko", "Gerold", "Hadmar", "Ivo", "Jorik", "Konrad", "Lambert", "Merek", "Norwin", "Osric", "Radek", "Sigmar", "Tobias", "Ulric", "Wendel"],
+    "f": ["Adela", "Brida", "Carlin", "Delia", "Elsbeth", "Frieda", "Gisela", "Hanna", "Ida", "Jutta", "Katrin", "Lioba", "Mirela", "Nessa", "Odila", "Rowena", "Sabetha", "Thea", "Verena", "Wilma"],
+    "nach": ["Eisenfaust", "Schwarzbach", "Hellauge", "Krähenfeld", "Sturmwald", "Aschenberg", "Weidenmoor", "Falkenrat", "Grauwacht", "Silberquell", "Dornhagen", "Nebelfurt", "Steinacker", "Rabenholz", "Goldweber"]
+  },
+  "elf": {
+    "label": "Elf",
+    "m": ["Aelar", "Berrian", "Carric", "Erevan", "Galinndan", "Hadarai", "Immeral", "Laucian", "Mindartis", "Paelias", "Quarion", "Riardon", "Soveliss", "Thamior", "Varis"],
+    "f": ["Adrie", "Althaea", "Bethrynna", "Caelynn", "Drusilia", "Enna", "Felosial", "Ielenia", "Keyleth", "Leshanna", "Meriele", "Naivara", "Quelenna", "Shanairra", "Theirastra"],
+    "nach": ["Amakiir (Edelsteinblüte)", "Galanodel (Mondflüstern)", "Holimion (Diamanttau)", "Liadon (Silberwedel)", "Meliamne (Eichenferse)", "Naïlo (Nachtbrise)", "Siannodel (Mondbach)", "Xiloscient (Goldblatt)", "Ilphelkiir (Perlenknospe)"]
+  },
+  "zwerg": {
+    "label": "Zwerg",
+    "m": ["Adrik", "Baern", "Darrak", "Eberk", "Fargrim", "Gardain", "Harbek", "Kildrak", "Morgran", "Orsik", "Rurik", "Thoradin", "Traubon", "Ulfgar", "Vondal"],
+    "f": ["Amber", "Bardryn", "Dagnal", "Eldeth", "Falkrunn", "Gunnloda", "Helja", "Kathra", "Mardred", "Riswynn", "Sannl", "Torbera", "Vistra"],
+    "nach": ["Balderk", "Dankil", "Feuerschmied", "Eisenhauer", "Silberbart", "Steinsiegel", "Grimmfels", "Erzgräber", "Ambosswart", "Goldader", "Felshammer", "Tiefenhall"]
+  },
+  "halbling": {
+    "label": "Halbling",
+    "m": ["Alton", "Cade", "Corrin", "Eldon", "Errich", "Finnan", "Garret", "Lindal", "Lyle", "Merric", "Milo", "Osborn", "Perrin", "Roscoe", "Wellby"],
+    "f": ["Andry", "Bree", "Callie", "Cora", "Euphemia", "Jillian", "Kithri", "Lavinia", "Lidda", "Merla", "Nedda", "Paela", "Portia", "Seraphina", "Trym"],
+    "nach": ["Gutfass", "Grünflasche", "Hochhügel", "Teekessel", "Braunlock", "Flinkfuß", "Warmherz", "Honigtopf", "Apfelblüte", "Distelzupf", "Kupferkessel"]
+  },
+  "gnom": {
+    "label": "Gnom",
+    "m": ["Alston", "Boddynock", "Dimble", "Fonkin", "Gerbo", "Jebeddo", "Namfoodle", "Roondar", "Seebo", "Sindri", "Warryn", "Wrenn", "Zook"],
+    "f": ["Bimpnottin", "Caramip", "Duvamil", "Ellywick", "Loopmottin", "Mardnab", "Nissa", "Oda", "Orla", "Roywyn", "Shamil", "Waywocket"],
+    "nach": ["Funkenzieher", "Silberfaden", "Zahnraddreher", "Glimmerstein", "Nussknacker", "Wirbelwind", "Messingknopf", "Tüftelmann", "Quirlfinger"]
+  },
+  "halbelf": {
+    "label": "Halbelf",
+    "m": ["Aramil", "Corvin", "Elric", "Faelar", "Jorvun", "Loras", "Maren", "Quilion", "Theren", "Vandel"],
+    "f": ["Ariane", "Elaria", "Ilyana", "Lyra", "Maelis", "Nyssa", "Selina", "Sylvia", "Tessari", "Yveline"],
+    "nach": ["Abendtau", "Mondweber", "Lichtenwald", "Sternenfurt", "Windgesang", "Silberzweig", "Morgenhauch"]
+  },
+  "halbork": {
+    "label": "Halbork",
+    "m": ["Dench", "Feng", "Gell", "Holg", "Imsh", "Keth", "Krusk", "Mhurren", "Ront", "Shump", "Thokk"],
+    "f": ["Baggi", "Emen", "Engong", "Kansif", "Myev", "Neega", "Ovak", "Shautha", "Sutha", "Vola", "Yevelda"],
+    "nach": ["Narbenfaust", "Eisenzahn", "Wolfsbrecher", "Aschekehle", "Steinnacken", "Blutweide", "Grimmschulter"]
+  },
+  "tiefling": {
+    "label": "Tiefling",
+    "m": ["Akmenos", "Amnon", "Barakas", "Damakos", "Ekemon", "Iados", "Kairon", "Leucis", "Melech", "Mordai", "Morthos", "Pelaios", "Skamos", "Therai"],
+    "f": ["Akta", "Anakis", "Bryseis", "Criella", "Damaia", "Ea", "Kallista", "Lerissa", "Makaria", "Nemeia", "Orianna", "Phelaia", "Rieta"],
+    "nach": ["Ehrgeiz", "Kunst", "Furcht", "Hoffnung", "Ideal", "Musik", "Nirgend", "Offen", "Poesie", "Suche", "Verlangen", "Glut"]
+  },
+  "drachenbluetiger": {
+    "label": "Drachenblütiger",
+    "m": ["Arjhan", "Balasar", "Bharash", "Donaar", "Ghesh", "Heskan", "Kriv", "Medrash", "Mehen", "Nadarr", "Pandjed", "Patrin", "Rhogar", "Shamash", "Torinn"],
+    "f": ["Akra", "Biri", "Daar", "Farideh", "Harann", "Havilar", "Jheri", "Kava", "Korinn", "Mishann", "Nala", "Perra", "Raiann", "Sora", "Thava"],
+    "nach": ["Clethtinthiallor", "Daardendrian", "Delmirev", "Drachedandion", "Fenkenkabradon", "Kepeshkmolik", "Kerrhylon", "Kimbatuul", "Linxakasendalor", "Myastan", "Norixius", "Ophinshtalajiir", "Prexijandilin", "Shestendeliath", "Turnuroth", "Verthisathurgiesh", "Yarjerit"]
+  }
+}

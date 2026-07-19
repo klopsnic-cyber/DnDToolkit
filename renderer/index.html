@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>DnD Toolkit</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="logo">
+        <div class="logo-icon">🐉</div>
+        <div class="logo-text">DnD<br /><span>Toolkit</span></div>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-view="haendler">⚒️ <span>Händler</span></button>
+        <button class="nav-btn" data-view="bibliothek">📜 <span>Bibliothek</span></button>
+        <button class="nav-btn" data-view="notizen">✒️ <span>Notizen</span></button>
+        <div class="nav-sep"></div>
+        <button class="nav-btn disabled" title="Kommt in Version 2">⚔️ <span>Encounter <em>bald</em></span></button>
+        <button class="nav-btn disabled" title="Kommt in Version 3">🏰 <span>Städte <em>bald</em></span></button>
+      </nav>
+      <div class="version" id="version"></div>
+    </aside>
+    <main id="main"><!-- Views werden per JS gerendert --></main>
+  </div>
+  <script src="js/generator.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
