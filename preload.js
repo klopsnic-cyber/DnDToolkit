@@ -11,5 +11,9 @@ contextBridge.exposeInMainWorld('api', {
   getHomebrew: () => ipcRenderer.invoke('homebrew:get'),
   saveHomebrew: (h) => ipcRenderer.invoke('homebrew:save', h),
   exportHomebrew: () => ipcRenderer.invoke('homebrew:export'),
-  importHomebrew: () => ipcRenderer.invoke('homebrew:import')
+  importHomebrew: () => ipcRenderer.invoke('homebrew:import'),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  saveSettings: (s) => ipcRenderer.invoke('settings:save', s),
+  checkUpdate: () => ipcRenderer.invoke('update:check'),
+  aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req)
 });

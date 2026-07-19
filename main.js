@@ -60,6 +60,123 @@ ipcMain.handle('store:deleteNote', (ev, id) => {
 
 ipcMain.handle('app:version', () => app.getVersion());
 
+// ---------- Einstellungen (API-Schlüssel etc., nur lokal) ----------
+const settingsPath = () => path.join(app.getPath('userData'), 'settings.json');
+
+function loadSettings() {
+  try {
+    return JSON.parse(fs.readFileSync(settingsPath(), 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+
+ipcMain.handle('settings:get', () => loadSettings());
+ipcMain.handle('settings:save', (ev, s) => {
+  fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2), 'utf8');
+  return s;
+});
+
+// ---------- Manueller Update-Check ----------
+ipcMain.handle('update:check', async () => {
+  if (!app.isPackaged) return { status: 'dev', msg: 'Im Entwicklungsmodus gibt es keine Updates.' };
+  if (!autoUpdater) return { status: 'error', msg: 'Updater nicht verfügbar.' };
+  try {
+    const r = await autoUpdater.checkForUpdates();
+    const neu = r && r.updateInfo && r.updateInfo.version;
+    if (neu && neu !== app.getVersion()) {
+      return { status: 'update', msg: 'Version ' + neu + ' gefunden – wird im Hintergrund geladen und beim Beenden installiert.' };
+    }
+    return { status: 'aktuell', msg: 'Du hast bereits die neueste Version (' + app.getVersion() + ').' };
+  } catch (e) {
+    return { status: 'error', msg: 'Update-Prüfung fehlgeschlagen: ' + e.message };
+  }
+});
+
+// ---------- KI-Anbindung (OpenAI, Gemini, Anthropic) ----------
+async function aiRequest(provider, key, system, user) {
+  let url, options;
+  if (provider === 'openai') {
+    url = 'https://api.openai.com/v1/chat/completions';
+    options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        response_format: { type: 'json_object' }
+      })
+    };
+  } else if (provider === 'gemini') {
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
+    options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: system + '\n\n' + user }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    };
+  } else if (provider === 'anthropic') {
+    url = 'https://api.anthropic.com/v1/messages';
+    options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system,
+        messages: [{ role: 'user', content: user }]
+      })
+    };
+  } else {
+    throw new Error('Unbekannter Anbieter: ' + provider);
+  }
+
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error('API-Fehler ' + res.status + (t ? ': ' + t.slice(0, 200) : ''));
+  }
+  const j = await res.json();
+  if (provider === 'openai') return j.choices[0].message.content;
+  if (provider === 'gemini') return j.candidates[0].content.parts[0].text;
+  return j.content[0].text;
+}
+
+function parseAiJson(text) {
+  // Codeblöcke und Umgebungstext entfernen, dann JSON parsen
+  let t = String(text).trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start >= 0 && end > start) t = t.slice(start, end + 1);
+  return JSON.parse(t);
+}
+
+const AI_SYSTEM = {
+  item: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers einen magischen Gegenstand für D&D 5e.
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer rarity):
+{"name": "Name des Gegenstands", "rarity": "Common|Uncommon|Rare|Very Rare|Legendary", "preis": "Zahl gp", "desc": "Regeltext mit Werten und Wirkung, 2-6 Sätze"}`,
+  monster: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers ein ausbalanciertes Monster für D&D 5e.
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer size):
+{"name": "Name", "cr": "Herausforderungsgrad z.B. 1/2 oder 5", "type": "Kreaturentyp", "size": "Tiny|Small|Medium|Large|Huge|Gargantuan", "ac": "Rüstungsklasse", "hp": "Trefferpunkte", "speed": "z.B. 30 ft.", "text": "Fähigkeiten und Aktionen als Statblock-Text mit Angriffswerten"}`
+};
+
+ipcMain.handle('ai:generate', async (ev, { provider, type, prompt }) => {
+  const s = loadSettings();
+  const keyMap = { openai: s.openaiKey, gemini: s.geminiKey, anthropic: s.anthropicKey };
+  const key = keyMap[provider];
+  if (!key) return { ok: false, error: 'Kein API-Schlüssel für diesen Anbieter hinterlegt (Einstellungen).' };
+  try {
+    const raw = await aiRequest(provider, key, AI_SYSTEM[type], prompt);
+    const obj = parseAiJson(raw);
+    if (!obj.name) throw new Error('Antwort enthielt keinen Namen.');
+    return { ok: true, result: obj };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
 // ---------- Homebrew (eigene Monster & Items, nur lokal) ----------
 const homebrewPath = () => path.join(app.getPath('userData'), 'homebrew.json');
 

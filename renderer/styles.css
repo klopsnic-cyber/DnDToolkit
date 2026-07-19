@@ -225,6 +225,19 @@ h2.magic, .itemname.magic { color: var(--magic-bright); }
 .statblock::-webkit-scrollbar-track { background: #e3d5b5; }
 .statblock::-webkit-scrollbar-thumb { background: #b09772; }
 
+/* ---------- KI-Panel & Einstellungen ---------- */
+.ai-panel {
+  background: linear-gradient(135deg, #221a2b 0%, #1d1722 100%);
+  border: 1px solid var(--magic); border-radius: var(--radius);
+  padding: 14px 18px; margin-bottom: 18px;
+}
+.ai-panel h2 { color: var(--magic-bright); }
+.ai-panel a { color: var(--magic-bright); }
+.ai-panel #aiStatus { margin-top: 8px; font-size: 13px; min-height: 16px; }
+.settings-hint { color: var(--text-dim); font-size: 13px; line-height: 1.5; margin-bottom: 4px; }
+.note-editor .field { margin-bottom: 4px; }
+.note-editor input[type="password"] { width: 100%; max-width: 480px; }
+
 /* ---------- Toast ---------- */
 #toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);

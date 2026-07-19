@@ -1,7 +1,7 @@
 {
   "name": "dnd-toolkit",
   "productName": "DnD Toolkit",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Umfassendes D&D 5e Toolkit für Dungeon Master – Händler, Encounter, Städte und mehr",
   "main": "main.js",
   "author": "Nic",
@@ -38,7 +38,8 @@
     "publish": {
       "provider": "github",
       "owner": "klopsnic-cyber",
-      "repo": "DnDToolkit"
+      "repo": "DnDToolkit",
+      "releaseType": "release"
     }
   }
 }

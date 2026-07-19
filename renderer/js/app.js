@@ -4,6 +4,7 @@
 'use strict';
 
 let DATA = null;          // Spieldaten (SRD + Tabellen)
+let SETTINGS = {};        // API-Schlüssel etc.
 let STORE = { entries: [], notes: [] };
 let currentMerchant = null;
 let currentView = 'haendler';
@@ -29,6 +30,7 @@ function toast(msg) {
   DATA = await window.api.loadData();
   STORE = await window.api.getAll();
   DATA.homebrew = await window.api.getHomebrew();
+  SETTINGS = await window.api.getSettings();
   try { $('#version').textContent = 'v' + (await window.api.getVersion()); } catch (e) {}
 
   $$('.nav-btn:not(.disabled)').forEach((b) =>
@@ -49,6 +51,7 @@ function renderView() {
   else if (currentView === 'kompendium') renderCompendium();
   else if (currentView === 'homebrew') renderHomebrew();
   else if (currentView === 'notizen') renderNotes();
+  else if (currentView === 'einstellungen') renderSettings();
 }
 
 // ================= Händler =================
@@ -410,6 +413,7 @@ function renderHomebrew() {
       <button class="btn ghost" id="hbImport">📥 Importieren</button>
       <button class="btn ghost" id="hbExport">📤 Exportieren</button>
     </div>
+    ${renderAiPanel(isItems)}
     <div class="note-editor">
       <h2>${editing ? 'Bearbeiten: ' + esc(editing.name) : (isItems ? 'Neues Item anlegen' : 'Neues Monster anlegen')}</h2>
       <div class="controls" style="margin:0;border:none;padding:0;background:none">${isItems ? itemForm : monForm}</div>
@@ -475,6 +479,8 @@ function renderHomebrew() {
     })
   );
 
+  wireAiPanel(isItems);
+
   $('#hbExport').addEventListener('click', async () => {
     const r = await window.api.exportHomebrew();
     if (r.ok) toast('Exportiert ✓');
@@ -483,6 +489,109 @@ function renderHomebrew() {
     const r = await window.api.importHomebrew();
     if (r.ok) { DATA.homebrew = r.homebrew; renderHomebrew(); toast('Importiert ✓'); }
     else if (r.error) toast(r.error);
+  });
+}
+
+// ================= KI-Assistent (Homebrew) =================
+const AI_PROVIDERS = [
+  ['gemini', 'Google Gemini', 'geminiKey'],
+  ['openai', 'OpenAI (ChatGPT)', 'openaiKey'],
+  ['anthropic', 'Anthropic (Claude)', 'anthropicKey']
+];
+
+function renderAiPanel(isItems) {
+  const avail = AI_PROVIDERS.filter(([, , k]) => SETTINGS[k]);
+  if (!avail.length) {
+    return `<div class="ai-panel dim">🤖 Tipp: Hinterlege in den <a href="#" id="aiGotoSettings">Einstellungen</a> einen KI-API-Schlüssel,
+    dann kann dir eine KI ${isItems ? 'Items' : 'Monster'} aus einer kurzen Beschreibung generieren.</div>`;
+  }
+  return `
+    <div class="ai-panel">
+      <h2>🤖 Mit KI generieren</h2>
+      <div class="controls" style="margin:0;border:none;padding:0;background:none">
+        <div class="field" style="flex:1"><label>Beschreibung</label>
+          <input type="text" id="aiPrompt" placeholder="${isItems ? 'z. B. ein verfluchtes Schwert, das nachts flüstert' : 'z. B. ein Frostwolf-Alphatier für Stufe-4-Gruppe'}" /></div>
+        <div class="field"><label>Anbieter</label><select id="aiProvider">${avail.map(([id, label]) => `<option value="${id}" ${SETTINGS.aiProvider === id ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+        <button class="btn" id="aiGen">✨ Generieren</button>
+      </div>
+      <div id="aiStatus" class="dim"></div>
+    </div>`;
+}
+
+function wireAiPanel(isItems) {
+  const goto = $('#aiGotoSettings');
+  if (goto) { goto.addEventListener('click', (e) => { e.preventDefault(); switchView('einstellungen'); }); return; }
+  const btn = $('#aiGen');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const prompt = $('#aiPrompt').value.trim();
+    if (!prompt) { toast('Bitte erst eine Beschreibung eingeben'); return; }
+    const provider = $('#aiProvider').value;
+    SETTINGS.aiProvider = provider;
+    window.api.saveSettings(SETTINGS);
+    btn.disabled = true;
+    $('#aiStatus').textContent = '🎲 Die KI würfelt… (kann ein paar Sekunden dauern)';
+    const r = await window.api.aiGenerate({ provider, type: isItems ? 'item' : 'monster', prompt });
+    btn.disabled = false;
+    if (!r.ok) { $('#aiStatus').textContent = '⚠️ ' + r.error; return; }
+    $('#aiStatus').textContent = '✓ Vorschlag eingetragen – prüfen, anpassen, dann Anlegen klicken.';
+    const g = r.result;
+    if (isItems) {
+      $('#hbName').value = g.name || '';
+      if (g.rarity) $('#hbRarity').value = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'].includes(g.rarity) ? g.rarity : '';
+      $('#hbPreis').value = g.preis || '';
+      $('#hbDesc').value = g.desc || '';
+    } else {
+      $('#hbName').value = g.name || '';
+      $('#hbCr').value = g.cr || '';
+      $('#hbType').value = g.type || '';
+      if (g.size && $('#hbSize').querySelector(`option[value]`) !== null) $('#hbSize').value = ['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'].includes(g.size) ? g.size : 'Medium';
+      $('#hbAc').value = g.ac ?? '';
+      $('#hbHp').value = g.hp ?? '';
+      $('#hbSpeed').value = g.speed || '';
+      $('#hbText').value = g.text || '';
+    }
+  });
+}
+
+// ================= Einstellungen =================
+async function renderSettings() {
+  const s = await window.api.getSettings();
+
+  main().innerHTML = `
+    <h1>Einstellungen</h1>
+    <div class="subtitle">API-Schlüssel werden nur lokal auf deinem PC gespeichert und nie ins Repo hochgeladen.</div>
+
+    <div class="note-editor">
+      <h2>🤖 KI-Anbieter für Homebrew-Generierung</h2>
+      <div class="settings-hint">Du brauchst mindestens einen Schlüssel. Google Gemini hat ein kostenloses Kontingent
+      (<b>aistudio.google.com/apikey</b>), OpenAI (<b>platform.openai.com/api-keys</b>) und Anthropic (<b>console.anthropic.com</b>) kosten Centbeträge pro Anfrage.</div>
+      <div class="field"><label>Google Gemini API-Schlüssel</label><input type="password" id="setGemini" value="${esc(s.geminiKey || '')}" placeholder="AIza…" /></div>
+      <div class="field"><label>OpenAI API-Schlüssel</label><input type="password" id="setOpenai" value="${esc(s.openaiKey || '')}" placeholder="sk-…" /></div>
+      <div class="field"><label>Anthropic API-Schlüssel</label><input type="password" id="setAnthropic" value="${esc(s.anthropicKey || '')}" placeholder="sk-ant-…" /></div>
+      <div><button class="btn" id="btnSaveSettings">💾 Speichern</button></div>
+    </div>
+
+    <div class="note-editor">
+      <h2>🔄 Updates</h2>
+      <div class="settings-hint">Die App prüft bei jedem Start automatisch auf neue Versionen. Hier kannst du manuell prüfen:</div>
+      <div><button class="btn ghost" id="btnCheckUpdate">Nach Updates suchen</button> <span id="updateStatus" class="dim"></span></div>
+    </div>`;
+
+  $('#btnSaveSettings').addEventListener('click', async () => {
+    SETTINGS = await window.api.saveSettings({
+      ...s,
+      geminiKey: $('#setGemini').value.trim(),
+      openaiKey: $('#setOpenai').value.trim(),
+      anthropicKey: $('#setAnthropic').value.trim()
+    });
+    toast('Einstellungen gespeichert ✓');
+  });
+
+  $('#btnCheckUpdate').addEventListener('click', async () => {
+    $('#updateStatus').textContent = 'Prüfe…';
+    const r = await window.api.checkUpdate();
+    $('#updateStatus').textContent = r.msg;
   });
 }
 
