@@ -187,12 +187,27 @@ async function aiRequest(provider, key, model, system, user) {
 }
 
 function parseAiJson(text) {
-  // Codeblöcke und Umgebungstext entfernen, dann JSON parsen
   let t = String(text).trim().replace(/^```(json)?/i, '').replace(/```$/, '').trim();
+  // 1. Versuch: direkt parsen
+  try { return JSON.parse(t); } catch (e) { /* weiter */ }
+  // 2. Versuch: erstes vollständiges JSON-Objekt per Klammerzählung extrahieren
+  // (manche Modelle liefern mehrere Objekte oder Erklärtext hintendran)
   const start = t.indexOf('{');
-  const end = t.lastIndexOf('}');
-  if (start >= 0 && end > start) t = t.slice(start, end + 1);
-  return JSON.parse(t);
+  if (start < 0) throw new Error('Keine JSON-Antwort erhalten.');
+  let depth = 0, inStr = false, escNext = false;
+  for (let i = start; i < t.length; i++) {
+    const c = t[i];
+    if (escNext) { escNext = false; continue; }
+    if (c === '\\') { escNext = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return JSON.parse(t.slice(start, i + 1));
+    }
+  }
+  throw new Error('KI-Antwort war kein vollständiges JSON.');
 }
 
 const AI_SYSTEM = {
