@@ -13,9 +13,10 @@ Dunkles Fantasy-Design, alle Daten offline mit dabei, aktualisiert sich selbst �
 - **🤖 KI-Assistent** *(neu in 1.2)* – generiert Homebrew-Items und -Monster aus einer kurzen Beschreibung. Unterstützt Google Gemini (kostenloses Kontingent), OpenAI und Anthropic Claude. API-Schlüssel werden in den Einstellungen hinterlegt und bleiben lokal.
 - **Offline-Daten** – alle Spieldaten sind mitgeliefert, nur der optionale KI-Assistent braucht Internet.
 
+- **⚔️ Encounter-Generator** *(neu in 1.3)* – ausbalancierte Begegnungen nach dem offiziellen XP-Budget-System: Gruppengröße, Stufe und Schwierigkeit wählen, fertig. Verschiedene Zusammensetzungen (Einzelgegner, Gruppen, Boss mit Begleitern), Filter nach Monstertyp und Quelle, jedes Monster austauschbar, Anzahl anpassbar, Statblock per Klick, speicherbar mit Notizen.
+
 ### Roadmap
 
-- **V2: ⚔️ Encounter-Generator** – ausbalancierte Begegnungen nach Party-Level und XP-Budget (Monsterdaten sind bereits an Bord)
 - **V3: 🏰 Städte-Generator** – Städte mit Läden, Tavernen, NPCs und Gerüchten
 - Danach: NPC-Generator, Loot-Generator, Tavernen-Generator
 

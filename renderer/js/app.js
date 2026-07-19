@@ -7,6 +7,7 @@ let DATA = null;          // Spieldaten (SRD + Tabellen)
 let SETTINGS = {};        // API-Schlüssel etc.
 let STORE = { entries: [], notes: [] };
 let currentMerchant = null;
+let currentEncounter = null;
 let currentView = 'haendler';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -47,6 +48,7 @@ function switchView(view) {
 
 function renderView() {
   if (currentView === 'haendler') renderMerchantView();
+  else if (currentView === 'encounter') renderEncounterView();
   else if (currentView === 'bibliothek') renderLibrary();
   else if (currentView === 'kompendium') renderCompendium();
   else if (currentView === 'homebrew') renderHomebrew();
@@ -196,21 +198,163 @@ ${inv}
 ${m.notizen ? '\nNotizen: ' + m.notizen : ''}`;
 }
 
+// ================= Encounter =================
+function renderEncounterView() {
+  const types = [...new Set(DATA.monsters.map((m) => m.type).filter(Boolean))].sort();
+  const sources = [...new Set(DATA.monsters.map((m) => m.src))];
+
+  main().innerHTML = `
+    <h1>Encounter-Generator</h1>
+    <div class="subtitle">Ausbalancierte Begegnungen nach dem XP-Budget-System – aus ${(DATA.monsters.length + DATA.homebrew.monsters.length).toLocaleString('de-DE')} Monstern.</div>
+    <div class="controls">
+      <div class="field"><label>Gruppengröße</label><select id="encGruppe">${[1,2,3,4,5,6,7,8].map((n) => `<option ${n === 4 ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+      <div class="field"><label>Stufe</label><select id="encStufe">${Array.from({ length: 20 }, (_, i) => `<option ${i + 1 === 3 ? 'selected' : ''}>${i + 1}</option>`).join('')}</select></div>
+      <div class="field"><label>Schwierigkeit</label><select id="encDiff">
+        <option value="leicht">Leicht</option>
+        <option value="mittel" selected>Mittel</option>
+        <option value="schwer">Schwer</option>
+        <option value="toedlich">Tödlich</option>
+      </select></div>
+      <div class="field"><label>Monstertyp</label><select id="encTyp"><option value="">Alle</option>${types.map((t) => `<option>${esc(t)}</option>`).join('')}</select></div>
+      <div class="field"><label>Quelle</label><select id="encQuelle"><option value="">Alle</option>${sources.map((s) => `<option>${esc(s)}</option>`).join('')}<option>Homebrew</option></select></div>
+      <button class="btn big" id="btnEncGen">🎲 Encounter erwürfeln</button>
+    </div>
+    <div id="encResult"></div>
+    <div id="modal"></div>`;
+
+  $('#btnEncGen').addEventListener('click', () => {
+    const enc = Generator.generateEncounter(DATA, {
+      stufe: +$('#encStufe').value,
+      gruppe: +$('#encGruppe').value,
+      schwierigkeit: $('#encDiff').value,
+      typ: $('#encTyp').value || undefined,
+      quelle: $('#encQuelle').value || undefined
+    });
+    if (!enc) { toast('Keine passenden Monster gefunden – Filter lockern'); return; }
+    currentEncounter = enc;
+    renderEncounterCard();
+  });
+
+  if (currentEncounter) renderEncounterCard();
+}
+
+function encOpts() {
+  return {
+    typ: ($('#encTyp') && $('#encTyp').value) || undefined,
+    quelle: ($('#encQuelle') && $('#encQuelle').value) || undefined
+  };
+}
+
+function renderEncounterCard() {
+  const e = currentEncounter;
+  const box = $('#encResult');
+  if (!box || !e) return;
+
+  const urteilFarbe = { Trivial: 'var(--text-dim)', Leicht: 'var(--green)', Mittel: 'var(--gold)', Schwer: '#c77b32', 'Tödlich': 'var(--red)' }[e.urteil] || 'var(--gold)';
+
+  const rows = e.monster.map((g, i) => `
+    <tr>
+      <td><span class="itemname enc-mon" data-i="${i}" title="Statblock anzeigen">${esc(g.name)}</span>
+        <div class="itemdesc">${esc([g.type, g.src].filter(Boolean).join(' · '))}</div></td>
+      <td class="num">
+        <button class="btn ghost small" data-minus="${i}">−</button>
+        <b> ${g.count} </b>
+        <button class="btn ghost small" data-plus="${i}">+</button>
+      </td>
+      <td class="num">${esc(String(g.cr))}</td>
+      <td class="price">${(g.xp * g.count).toLocaleString('de-DE')} XP</td>
+      <td class="num"><button class="reroll" data-swap="${i}" title="Ähnliches Monster einwechseln">🎲</button>
+      <button class="row-del" data-del="${i}" title="Entfernen">✕</button></td>
+    </tr>`).join('');
+
+  box.innerHTML = `
+    <div class="merchant-card">
+      <div class="merchant-head">
+        <div class="icon">⚔️</div>
+        <div>
+          <div class="shopname">${esc(e.name)}</div>
+          <div class="meta">${e.gruppe} Abenteurer · Stufe ${e.stufe} · Ziel: ${esc(Generator.DIFF_LABEL[e.schwierigkeit])} (${e.budget.toLocaleString('de-DE')} XP Budget)</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:22px;font-family:var(--serif);color:${urteilFarbe}">${esc(e.urteil)}</div>
+          <div class="dim">${e.adjXP.toLocaleString('de-DE')} XP angepasst · ${e.totalXP.toLocaleString('de-DE')} XP Beute-Wert</div>
+        </div>
+      </div>
+      <div class="inventory">
+        <table>
+          <thead><tr><th>Monster</th><th class="num">Anzahl</th><th class="num">HG</th><th>XP</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="merchant-foot">
+        <textarea id="encNotes" placeholder="Eigene Notizen zu dieser Begegnung (Taktik, Gelände, Auslöser…)">${esc(e.notizen)}</textarea>
+        <div class="foot-btns">
+          <button class="btn" id="btnEncSave">💾 In Bibliothek speichern</button>
+          <button class="btn ghost" id="btnEncCopy">📋 Als Text kopieren</button>
+        </div>
+      </div>
+    </div>`;
+
+  const rerender = () => { Generator.recalcEncounter(e); renderEncounterCard(); };
+
+  $$('.enc-mon', box).forEach((el) =>
+    el.addEventListener('click', () => {
+      const g = e.monster[+el.dataset.i];
+      const full = DATA.monsters.find((m) => m.index === g.index)
+        || DATA.homebrew.monsters.find((m) => m.id === g.index);
+      if (full) showStatblock(full.src ? full : { ...full, src: 'Homebrew' });
+    })
+  );
+  $$('[data-plus]', box).forEach((b) => b.addEventListener('click', () => { e.monster[+b.dataset.plus].count++; rerender(); }));
+  $$('[data-minus]', box).forEach((b) => b.addEventListener('click', () => {
+    const g = e.monster[+b.dataset.minus];
+    g.count--; if (g.count <= 0) e.monster.splice(+b.dataset.minus, 1);
+    rerender();
+  }));
+  $$('[data-del]', box).forEach((b) => b.addEventListener('click', () => { e.monster.splice(+b.dataset.del, 1); rerender(); }));
+  $$('[data-swap]', box).forEach((b) => b.addEventListener('click', () => { Generator.swapMonster(DATA, e, +b.dataset.swap, encOpts()); renderEncounterCard(); }));
+
+  $('#encNotes').addEventListener('input', (ev) => { e.notizen = ev.target.value; });
+  $('#btnEncSave').addEventListener('click', async () => {
+    STORE = await window.api.saveEntry(JSON.parse(JSON.stringify(e)));
+    toast('In Bibliothek gespeichert ✓');
+  });
+  $('#btnEncCopy').addEventListener('click', () => {
+    const txt = e.name + '\n' + e.gruppe + ' Abenteurer, Stufe ' + e.stufe + ' – ' + e.urteil + ' (' + e.adjXP + ' XP angepasst, Budget ' + e.budget + ')\n\n' +
+      e.monster.map((g) => '  ' + g.count + 'x ' + g.name + ' (HG ' + g.cr + ', je ' + g.xp + ' XP) [' + g.src + ']').join('\n') +
+      (e.notizen ? '\n\nNotizen: ' + e.notizen : '');
+    navigator.clipboard.writeText(txt);
+    toast('In Zwischenablage kopiert ✓');
+  });
+}
+
 // ================= Bibliothek =================
 function renderLibrary(filterText = '') {
   const entries = STORE.entries.filter((e) => {
     const q = filterText.toLowerCase();
-    return !q || e.name.toLowerCase().includes(q) || (e.ladenName || '').toLowerCase().includes(q) || (e.ladenLabel || '').toLowerCase().includes(q);
+    if (!q) return true;
+    const inMonster = e.type === 'encounter' && e.monster.some((g) => g.name.toLowerCase().includes(q));
+    return e.name.toLowerCase().includes(q) || (e.ladenName || '').toLowerCase().includes(q) || (e.ladenLabel || '').toLowerCase().includes(q) || inMonster;
   });
 
-  const cards = entries.map((e) => `
+  const cards = entries.map((e) => {
+    let icon, title, sub;
+    if (e.type === 'encounter') {
+      icon = '⚔️'; title = e.name;
+      sub = e.monster.map((g) => g.count + 'x ' + g.name).join(', ').slice(0, 70) + ' · ' + e.urteil;
+    } else {
+      icon = e.ladenIcon || '📦'; title = e.ladenName || e.name;
+      sub = [e.name, e.rasseLabel, e.ladenLabel || e.type].filter(Boolean).join(' · ');
+    }
+    return `
     <div class="lib-card" data-id="${e.id}">
       <button class="del" data-id="${e.id}" title="Löschen">🗑</button>
-      <div class="t">${e.ladenIcon || '📦'} ${esc(e.ladenName || e.name)}</div>
-      <div class="s">${esc(e.name)} · ${esc(e.rasseLabel || '')} · ${esc(e.ladenLabel || e.type)}</div>
+      <div class="t">${icon} ${esc(title)}</div>
+      <div class="s">${esc(sub)}</div>
       ${e.notizen ? `<div class="s">📝 ${esc(e.notizen.slice(0, 60))}${e.notizen.length > 60 ? '…' : ''}</div>` : ''}
       <div class="d">Erstellt: ${fmtDate(e.createdAt)}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   main().innerHTML = `
     <h1>Bibliothek</h1>
@@ -229,7 +373,11 @@ function renderLibrary(filterText = '') {
     c.addEventListener('click', (ev) => {
       if (ev.target.classList.contains('del')) return;
       const entry = STORE.entries.find((e) => e.id === c.dataset.id);
-      if (entry) {
+      if (!entry) return;
+      if (entry.type === 'encounter') {
+        currentEncounter = JSON.parse(JSON.stringify(entry));
+        switchView('encounter');
+      } else {
         currentMerchant = JSON.parse(JSON.stringify(entry));
         switchView('haendler');
       }
