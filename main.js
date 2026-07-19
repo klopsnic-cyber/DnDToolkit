@@ -94,49 +94,91 @@ ipcMain.handle('update:check', async () => {
 });
 
 // ---------- KI-Anbindung (OpenAI, Gemini, Anthropic) ----------
-async function aiRequest(provider, key, system, user) {
-  let url, options;
+const AI_DEFAULT_MODEL = {
+  openai: 'gpt-4o-mini',
+  gemini: 'gemini-flash-latest',
+  anthropic: 'claude-haiku-4-5-20251001'
+};
+
+// Falls das Gemini-Modell nicht mehr existiert: verfügbare Modelle abfragen und bestes Flash-Modell wählen
+async function discoverGeminiModel(key) {
+  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + encodeURIComponent(key));
+  if (!res.ok) throw new Error('Modell-Liste nicht abrufbar (' + res.status + ')');
+  const j = await res.json();
+  const usable = (j.models || [])
+    .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map((m) => m.name.replace('models/', ''));
+  const flash = usable.filter((n) => n.includes('flash') && !n.includes('image') && !n.includes('live') && !n.includes('tts'));
+  // "latest"-Aliasse bevorzugen, sonst höchste Versionsnummer
+  const latest = flash.find((n) => n.includes('latest'));
+  if (latest) return latest;
+  flash.sort().reverse();
+  if (flash[0]) return flash[0];
+  if (usable[0]) return usable[0];
+  throw new Error('Kein nutzbares Gemini-Modell gefunden.');
+}
+
+function buildAiRequest(provider, key, model, system, user) {
   if (provider === 'openai') {
-    url = 'https://api.openai.com/v1/chat/completions';
-    options = {
+    return ['https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model,
         messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
         response_format: { type: 'json_object' }
       })
-    };
-  } else if (provider === 'gemini') {
-    url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
-    options = {
+    }];
+  }
+  if (provider === 'gemini') {
+    return ['https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: system + '\n\n' + user }] }],
         generationConfig: { responseMimeType: 'application/json' }
       })
-    };
-  } else if (provider === 'anthropic') {
-    url = 'https://api.anthropic.com/v1/messages';
-    options = {
+    }];
+  }
+  if (provider === 'anthropic') {
+    return ['https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
-        system,
-        messages: [{ role: 'user', content: user }]
-      })
-    };
-  } else {
-    throw new Error('Unbekannter Anbieter: ' + provider);
+      body: JSON.stringify({ model, max_tokens: 2000, system, messages: [{ role: 'user', content: user }] })
+    }];
+  }
+  throw new Error('Unbekannter Anbieter: ' + provider);
+}
+
+function friendlyAiError(provider, status, body) {
+  if (status === 429 && provider === 'openai') {
+    return 'OpenAI-Kontingent aufgebraucht. Das API-Guthaben ist unabhängig vom ChatGPT-Abo – unter platform.openai.com → Billing Guthaben aufladen, oder kostenlos Gemini nutzen.';
+  }
+  if (status === 401 || status === 403) {
+    return 'API-Schlüssel ungültig oder ohne Berechtigung (Fehler ' + status + '). Schlüssel in den Einstellungen prüfen.';
+  }
+  return 'API-Fehler ' + status + (body ? ': ' + body.slice(0, 200) : '');
+}
+
+async function aiRequest(provider, key, model, system, user) {
+  let [url, options] = buildAiRequest(provider, key, model, system, user);
+  let res = await fetch(url, options);
+
+  // Gemini: Modell veraltet/unbekannt → aktuelles Modell automatisch ermitteln und einmal neu versuchen
+  if (!res.ok && provider === 'gemini' && (res.status === 404 || res.status === 400)) {
+    const neu = await discoverGeminiModel(key);
+    [url, options] = buildAiRequest(provider, key, neu, system, user);
+    res = await fetch(url, options);
+    if (res.ok) {
+      const s = loadSettings();
+      s.geminiModel = neu; // merken für nächstes Mal
+      fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2), 'utf8');
+    }
   }
 
-  const res = await fetch(url, options);
   if (!res.ok) {
     const t = await res.text().catch(() => '');
-    throw new Error('API-Fehler ' + res.status + (t ? ': ' + t.slice(0, 200) : ''));
+    throw new Error(friendlyAiError(provider, res.status, t));
   }
   const j = await res.json();
   if (provider === 'openai') return j.choices[0].message.content;
@@ -167,8 +209,10 @@ ipcMain.handle('ai:generate', async (ev, { provider, type, prompt }) => {
   const keyMap = { openai: s.openaiKey, gemini: s.geminiKey, anthropic: s.anthropicKey };
   const key = keyMap[provider];
   if (!key) return { ok: false, error: 'Kein API-Schlüssel für diesen Anbieter hinterlegt (Einstellungen).' };
+  const modelMap = { openai: s.openaiModel, gemini: s.geminiModel, anthropic: s.anthropicModel };
+  const model = modelMap[provider] || AI_DEFAULT_MODEL[provider];
   try {
-    const raw = await aiRequest(provider, key, AI_SYSTEM[type], prompt);
+    const raw = await aiRequest(provider, key, model, AI_SYSTEM[type], prompt);
     const obj = parseAiJson(raw);
     if (!obj.name) throw new Error('Antwort enthielt keinen Namen.');
     return { ok: true, result: obj };
