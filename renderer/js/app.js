@@ -8,6 +8,7 @@ let SETTINGS = {};        // API-Schlüssel etc.
 let STORE = { entries: [], notes: [] };
 let currentMerchant = null;
 let currentEncounter = null;
+let currentCity = null;
 let currentView = 'haendler';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -49,6 +50,7 @@ function switchView(view) {
 function renderView() {
   if (currentView === 'haendler') renderMerchantView();
   else if (currentView === 'encounter') renderEncounterView();
+  else if (currentView === 'stadt') renderCityView();
   else if (currentView === 'bibliothek') renderLibrary();
   else if (currentView === 'kompendium') renderCompendium();
   else if (currentView === 'homebrew') renderHomebrew();
@@ -150,6 +152,7 @@ function renderMerchantCard() {
         <div class="foot-btns">
           <button class="btn" id="btnSave">💾 In Bibliothek speichern</button>
           <button class="btn ghost" id="btnCopy">📋 Als Text kopieren</button>
+          <button class="btn ghost" id="btnMerchFoundry">🎲 Foundry-Export (NPC + Waren)</button>
         </div>
       </div>
     </div>`;
@@ -180,6 +183,13 @@ function renderMerchantCard() {
   $('#btnCopy').addEventListener('click', () => {
     navigator.clipboard.writeText(merchantAsText(m));
     toast('In Zwischenablage kopiert ✓');
+  });
+  $('#btnMerchFoundry').addEventListener('click', async () => {
+    const r = await window.api.saveText({
+      defaultName: 'fvtt-' + Foundry.slug(m.name) + '.json',
+      content: JSON.stringify(Foundry.merchantToFoundry(m), null, 2)
+    });
+    if (r.ok) toast('Foundry-Export gespeichert ✓ (In Foundry: Akteur anlegen → Import Data)');
   });
 }
 
@@ -291,6 +301,7 @@ function renderEncounterCard() {
         <div class="foot-btns">
           <button class="btn" id="btnEncSave">💾 In Bibliothek speichern</button>
           <button class="btn ghost" id="btnEncCopy">📋 Als Text kopieren</button>
+          <button class="btn ghost" id="btnEncFoundry">🎲 Foundry-Export (alle Monster)</button>
         </div>
       </div>
     </div>`;
@@ -319,10 +330,142 @@ function renderEncounterCard() {
     STORE = await window.api.saveEntry(JSON.parse(JSON.stringify(e)));
     toast('In Bibliothek gespeichert ✓');
   });
+  $('#btnEncFoundry').addEventListener('click', async () => {
+    const files = e.monster.map((g) => {
+      const full = DATA.monsters.find((m) => m.index === g.index)
+        || DATA.homebrew.monsters.find((m) => m.id === g.index) || g;
+      return {
+        name: 'fvtt-' + Foundry.slug(g.name) + '.json',
+        content: JSON.stringify(Foundry.monsterToFoundry(full), null, 2)
+      };
+    });
+    const r = await window.api.saveMany({ files });
+    if (r.ok) toast(r.count + ' Foundry-Dateien gespeichert ✓');
+  });
   $('#btnEncCopy').addEventListener('click', () => {
     const txt = e.name + '\n' + e.gruppe + ' Abenteurer, Stufe ' + e.stufe + ' – ' + e.urteil + ' (' + e.adjXP + ' XP angepasst, Budget ' + e.budget + ')\n\n' +
       e.monster.map((g) => '  ' + g.count + 'x ' + g.name + ' (HG ' + g.cr + ', je ' + g.xp + ' XP) [' + g.src + ']').join('\n') +
       (e.notizen ? '\n\nNotizen: ' + e.notizen : '');
+    navigator.clipboard.writeText(txt);
+    toast('In Zwischenablage kopiert ✓');
+  });
+}
+
+// ================= Städte =================
+function renderCityView() {
+  const st = DATA.tables.stadt;
+
+  main().innerHTML = `
+    <h1>Städte-Generator</h1>
+    <div class="subtitle">Komplette Siedlungen mit Läden (echte Händler!), Tavernen, wichtigen NPCs und Gerüchten.</div>
+    <div class="controls">
+      <div class="field"><label>Größe</label><select id="citySize"><option value="">Zufällig</option>${st.groessen.map((g) => `<option value="${g.id}">${esc(g.label)}</option>`).join('')}</select></div>
+      <button class="btn big" id="btnCityGen">🎲 Stadt erwürfeln</button>
+    </div>
+    <div id="cityResult"></div>
+    <div id="modal"></div>`;
+
+  $('#btnCityGen').addEventListener('click', () => {
+    currentCity = Generator.generateCity(DATA, { groesse: $('#citySize').value || undefined });
+    renderCityCard();
+  });
+
+  if (currentCity) renderCityCard();
+}
+
+function renderCityCard() {
+  const s = currentCity;
+  const box = $('#cityResult');
+  if (!box || !s) return;
+
+  const info = (key, label, value) => `
+    <div class="persona-row">
+      <div class="k">${label}</div>
+      <div class="v">${esc(value)}</div>
+      ${key ? `<button class="reroll" data-city="${key}" title="Neu würfeln">🎲</button>` : ''}
+    </div>`;
+
+  const ladenCards = s.laeden.map((l, i) => `
+    <div class="lib-card" data-laden="${i}">
+      <div class="t">${l.ladenIcon} ${esc(l.ladenName)}</div>
+      <div class="s">${esc(l.ladenLabel)} · ${esc(l.name)} (${esc(l.rasseLabel)})</div>
+      <div class="d">${esc(l.qualitaetLabel)} · ${l.inventar.length} Waren – anklicken zum Öffnen</div>
+    </div>`).join('');
+
+  const tavCards = s.tavernen.map((t) => `
+    <div class="lib-card" style="cursor:default">
+      <div class="t">🍺 ${esc(t.name)}</div>
+      <div class="s">Wirt: ${esc(t.wirt)}</div>
+      <div class="s">Spezialität: ${esc(t.gericht)}</div>
+      <div class="s">${esc(t.besonderheit)}</div>
+      <div class="d">🗣️ ${esc(t.geruecht)}</div>
+    </div>`).join('');
+
+  const npcRows = s.npcs.map((n) => `
+    <div class="persona-row">
+      <div class="k">${esc(n.amt)}</div>
+      <div class="v">${esc(n.name)} (${esc(n.rasse)})<small>${esc(n.wesen)} · ${esc(n.eigenheit)}</small></div>
+    </div>`).join('');
+
+  box.innerHTML = `
+    <div class="merchant-card">
+      <div class="merchant-head">
+        <div class="icon">🏰</div>
+        <div>
+          <div class="shopname">${esc(s.name)} <button class="reroll" data-city="name" title="Neu würfeln">🎲</button><span class="badge">${esc(s.groesseLabel)}</span></div>
+          <div class="meta">${s.einwohner.toLocaleString('de-DE')} Einwohner</div>
+        </div>
+      </div>
+      <div class="merchant-body">
+        <div class="persona">
+          <h2>Überblick</h2>
+          ${info('regierung', 'Regierung', 'Regiert von ' + s.regierung)}
+          ${info('merkmal', 'Merkmal', 'Die Siedlung ' + s.merkmal)}
+          ${info('verteidigung', 'Verteidigung', 'Geschützt durch ' + s.verteidigung)}
+          <h2 style="margin-top:16px">Wichtige Personen</h2>
+          ${npcRows}
+          <h2 style="margin-top:16px">Gerüchte & Aufhänger <button class="reroll" data-city="geruechte" title="Neu würfeln">🎲</button></h2>
+          ${s.geruechte.map((g) => `<div class="persona-row"><div class="v">🗣️ ${esc(g)}</div></div>`).join('')}
+        </div>
+        <div class="inventory">
+          <h2>Läden (${s.laeden.length})</h2>
+          <div class="lib-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${ladenCards}</div>
+          <h2 style="margin-top:18px">Tavernen (${s.tavernen.length})</h2>
+          <div class="lib-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${tavCards}</div>
+        </div>
+      </div>
+      <div class="merchant-foot">
+        <textarea id="cityNotes" placeholder="Eigene Notizen zu dieser Siedlung…">${esc(s.notizen)}</textarea>
+        <div class="foot-btns">
+          <button class="btn" id="btnCitySave">💾 In Bibliothek speichern</button>
+          <button class="btn ghost" id="btnCityCopy">📋 Als Text kopieren</button>
+        </div>
+      </div>
+    </div>`;
+
+  $$('[data-city]', box).forEach((b) =>
+    b.addEventListener('click', () => { Generator.cityReroll[b.dataset.city](DATA, s); renderCityCard(); })
+  );
+  $$('[data-laden]', box).forEach((c) =>
+    c.addEventListener('click', () => {
+      // Laden in der Stadt als Referenz öffnen – Änderungen fließen in die Stadt zurück
+      currentMerchant = s.laeden[+c.dataset.laden];
+      switchView('haendler');
+    })
+  );
+  $('#cityNotes').addEventListener('input', (ev) => { s.notizen = ev.target.value; });
+  $('#btnCitySave').addEventListener('click', async () => {
+    STORE = await window.api.saveEntry(JSON.parse(JSON.stringify(s)));
+    toast('In Bibliothek gespeichert ✓');
+  });
+  $('#btnCityCopy').addEventListener('click', () => {
+    const txt = s.name + ' (' + s.groesseLabel + ', ' + s.einwohner + ' Einwohner)\n' +
+      'Regiert von ' + s.regierung + '. Die Siedlung ' + s.merkmal + '. Geschützt durch ' + s.verteidigung + '.\n\n' +
+      'Wichtige Personen:\n' + s.npcs.map((n) => '  ' + n.amt + ': ' + n.name + ' (' + n.rasse + ') – ' + n.wesen + '\n').join('') +
+      '\nLäden:\n' + s.laeden.map((l) => '  ' + l.ladenName + ' (' + l.ladenLabel + ') – ' + l.name + '\n').join('') +
+      '\nTavernen:\n' + s.tavernen.map((t) => '  ' + t.name + ' – Wirt: ' + t.wirt + '\n').join('') +
+      '\nGerüchte:\n' + s.geruechte.map((g) => '  – ' + g + '\n').join('') +
+      (s.notizen ? '\nNotizen: ' + s.notizen : '');
     navigator.clipboard.writeText(txt);
     toast('In Zwischenablage kopiert ✓');
   });
@@ -342,6 +485,9 @@ function renderLibrary(filterText = '') {
     if (e.type === 'encounter') {
       icon = '⚔️'; title = e.name;
       sub = e.monster.map((g) => g.count + 'x ' + g.name).join(', ').slice(0, 70) + ' · ' + e.urteil;
+    } else if (e.type === 'stadt') {
+      icon = '🏰'; title = e.name;
+      sub = e.groesseLabel + ' · ' + e.einwohner.toLocaleString('de-DE') + ' EW · ' + e.laeden.length + ' Läden, ' + e.tavernen.length + ' Tavernen';
     } else {
       icon = e.ladenIcon || '📦'; title = e.ladenName || e.name;
       sub = [e.name, e.rasseLabel, e.ladenLabel || e.type].filter(Boolean).join(' · ');
@@ -377,6 +523,9 @@ function renderLibrary(filterText = '') {
       if (entry.type === 'encounter') {
         currentEncounter = JSON.parse(JSON.stringify(entry));
         switchView('encounter');
+      } else if (entry.type === 'stadt') {
+        currentCity = JSON.parse(JSON.stringify(entry));
+        switchView('stadt');
       } else {
         currentMerchant = JSON.parse(JSON.stringify(entry));
         switchView('haendler');
@@ -483,10 +632,19 @@ function showStatblock(m) {
         ${block('Aktionen', m.actions)}
         ${block('Legendäre Aktionen', m.legendary)}
         ${m.text ? `<div class="sb-sect"><p>${esc(m.text)}</p></div>` : ''}
+        <hr />
+        <button class="btn ghost small" id="sbFoundry">🎲 Für Foundry VTT exportieren</button>
       </div>
     </div>`;
   $('.modal-close').addEventListener('click', () => ($('#modal').innerHTML = ''));
   $('.modal-bg').addEventListener('click', (e) => { if (e.target.classList.contains('modal-bg')) $('#modal').innerHTML = ''; });
+  $('#sbFoundry').addEventListener('click', async () => {
+    const r = await window.api.saveText({
+      defaultName: 'fvtt-' + Foundry.slug(m.name) + '.json',
+      content: JSON.stringify(Foundry.monsterToFoundry(m), null, 2)
+    });
+    if (r.ok) toast('Foundry-Export gespeichert ✓ (In Foundry: Akteur anlegen → Import Data)');
+  });
 }
 
 function showItemDetail(it) {
@@ -495,13 +653,26 @@ function showItemDetail(it) {
       <div class="statblock">
         <button class="modal-close">✕</button>
         <h2 class="magic">${esc(it.name)}</h2>
-        <div class="sb-meta">${esc([it.rarity, it.cat].filter(Boolean).join(' · '))}${it.attune ? ' · Einstimmung erforderlich' : ''} · <span class="dim">${esc(it.src)}</span>${it.preis ? ' · ' + esc(it.preis) : ''}</div>
+        <div class="sb-meta">${esc([it.itemTyp, it.rarity, it.cat !== 'wondrous-items' ? it.cat : null].filter(Boolean).join(' · '))}${it.attune ? ' · Einstimmung erforderlich' : ''} · <span class="dim">${esc(it.src)}</span>${it.preis ? ' · ' + esc(it.preis) : ''}</div>
         <hr />
+        ${it.schaden ? `<div class="sb-line"><b>Schaden</b> ${esc(it.schaden)}${it.bonus ? ' (' + esc(it.bonus) + ' auf Angriff und Schaden)' : ''}</div>` : ''}
+        ${!it.schaden && it.bonus ? `<div class="sb-line"><b>Bonus</b> ${esc(it.bonus)}</div>` : ''}
+        ${it.rk ? `<div class="sb-line"><b>Rüstungsklasse</b> ${esc(it.rk)}</div>` : ''}
+        ${it.eigenschaften ? `<div class="sb-sect"><p><b><i>Eigenschaften.</i></b> ${esc(it.eigenschaften)}</p></div>` : ''}
         <div class="sb-sect"><p style="white-space:pre-wrap">${esc(it.desc || 'Keine Beschreibung.')}</p></div>
+        <hr />
+        <button class="btn ghost small" id="itFoundry">🎲 Für Foundry VTT exportieren</button>
       </div>
     </div>`;
   $('.modal-close').addEventListener('click', () => ($('#modal').innerHTML = ''));
   $('.modal-bg').addEventListener('click', (e) => { if (e.target.classList.contains('modal-bg')) $('#modal').innerHTML = ''; });
+  $('#itFoundry').addEventListener('click', async () => {
+    const r = await window.api.saveText({
+      defaultName: 'fvtt-' + Foundry.slug(it.name) + '.json',
+      content: JSON.stringify(Foundry.itemToFoundry(it), null, 2)
+    });
+    if (r.ok) toast('Foundry-Export gespeichert ✓ (In Foundry: Item anlegen → Import Data)');
+  });
 }
 
 // ================= Homebrew =================
@@ -528,15 +699,21 @@ function renderHomebrew() {
         : esc(['HG ' + (x.cr || '?'), x.type, x.size].filter(Boolean).join(' · '))}</div>
     </div>`).join('');
 
+  const ITEM_TYPEN = ['Wundersamer Gegenstand', 'Waffe', 'Rüstung', 'Schild', 'Trank', 'Schriftrolle', 'Ring', 'Stab', 'Zauberstab', 'Munition'];
   const itemForm = `
     <div class="field"><label>Name *</label><input type="text" id="hbName" value="${esc(editing?.name || '')}" /></div>
+    <div class="field"><label>Typ</label><select id="hbItemTyp">${ITEM_TYPEN.map((t) => `<option ${editing?.itemTyp === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
     <div class="field"><label>Seltenheit</label><select id="hbRarity">${['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'].map((r) => `<option ${editing?.rarity === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
     <div class="field"><label>Preis</label><input type="text" id="hbPreis" value="${esc(editing?.preis || '')}" placeholder="z. B. 150 gp" /></div>
+    <div class="field"><label>Schaden</label><input type="text" id="hbSchaden" value="${esc(editing?.schaden || '')}" placeholder="z. B. 1d8 Hieb + 1d6 Feuer" /></div>
+    <div class="field"><label>Bonus</label><input type="text" id="hbBonus" value="${esc(editing?.bonus || '')}" placeholder="z. B. +1" style="max-width:90px" /></div>
+    <div class="field"><label>RK (Rüstung)</label><input type="text" id="hbRk" value="${esc(editing?.rk || '')}" placeholder="z. B. 14" style="max-width:90px" /></div>
     <div class="field"><label>Erscheint bei Händlern</label><select id="hbLaden">
       <option value="">Nie (nur Kompendium)</option>
       <option value="alle" ${editing?.laden === 'alle' ? 'selected' : ''}>Jeder Ladentyp</option>
       ${laeden.map((l) => `<option value="${l.id}" ${editing?.laden === l.id ? 'selected' : ''}>${l.icon} ${esc(l.label)}</option>`).join('')}
     </select></div>
+    <div class="field" style="flex-basis:100%"><label>Besondere Eigenschaften (Regeln)</label><textarea id="hbEigen" style="min-height:50px">${esc(editing?.eigenschaften || '')}</textarea></div>
     <div class="field" style="flex-basis:100%"><label>Beschreibung</label><textarea id="hbDesc" style="min-height:70px">${esc(editing?.desc || '')}</textarea></div>`;
 
   const monForm = `
@@ -583,6 +760,11 @@ function renderHomebrew() {
         name, rarity: $('#hbRarity').value || null,
         preis: $('#hbPreis').value.trim() || null,
         laden: $('#hbLaden').value || null,
+        itemTyp: $('#hbItemTyp').value,
+        schaden: $('#hbSchaden').value.trim() || null,
+        bonus: $('#hbBonus').value.trim() || null,
+        rk: $('#hbRk').value.trim() || null,
+        eigenschaften: $('#hbEigen').value.trim() || null,
         cat: 'wondrous-items',
         desc: $('#hbDesc').value.trim()
       };
@@ -688,6 +870,12 @@ function wireAiPanel(isItems) {
       $('#hbName').value = g.name || '';
       if (g.rarity) $('#hbRarity').value = ['Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'].includes(g.rarity) ? g.rarity : '';
       $('#hbPreis').value = g.preis || '';
+      const typen = [...$('#hbItemTyp').options].map((o) => o.value);
+      if (g.itemTyp && typen.includes(g.itemTyp)) $('#hbItemTyp').value = g.itemTyp;
+      $('#hbSchaden').value = g.schaden || '';
+      $('#hbBonus').value = g.bonus || '';
+      $('#hbRk').value = g.rk || '';
+      $('#hbEigen').value = g.eigenschaften || '';
       $('#hbDesc').value = g.desc || '';
     } else {
       $('#hbName').value = g.name || '';

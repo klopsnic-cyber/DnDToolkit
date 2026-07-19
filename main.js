@@ -211,9 +211,9 @@ function parseAiJson(text) {
 }
 
 const AI_SYSTEM = {
-  item: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers einen magischen Gegenstand für D&D 5e.
+  item: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers einen magischen Gegenstand für D&D 5e mit vollständigen Spielwerten.
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer rarity):
-{"name": "Name des Gegenstands", "rarity": "Common|Uncommon|Rare|Very Rare|Legendary", "preis": "Zahl gp", "desc": "Regeltext mit Werten und Wirkung, 2-6 Sätze"}`,
+{"name": "Name des Gegenstands", "itemTyp": "Waffe|Rüstung|Schild|Trank|Schriftrolle|Ring|Stab|Zauberstab|Munition|Wundersamer Gegenstand", "rarity": "Common|Uncommon|Rare|Very Rare|Legendary", "preis": "Zahl gp", "schaden": "Schadenswürfel und -typ bei Waffen, z.B. '1d8 Hieb + 1d6 Feuer', sonst null", "bonus": "magischer Bonus wie '+1', sonst null", "rk": "Rüstungsklasse als Zahl nur bei Rüstungen/Schilden, sonst null", "eigenschaften": "besondere Regeln mit konkreten Werten, Rettungswürfen (SG), Aufladungen usw.", "desc": "stimmungsvolle Beschreibung, 2-4 Sätze"}`,
   monster: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers ein ausbalanciertes Monster für D&D 5e.
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer size):
 {"name": "Name", "cr": "Herausforderungsgrad z.B. 1/2 oder 5", "type": "Kreaturentyp", "size": "Tiny|Small|Medium|Large|Huge|Gargantuan", "ac": "Rüstungsklasse", "hp": "Trefferpunkte", "speed": "z.B. 30 ft.", "text": "Fähigkeiten und Aktionen als Statblock-Text mit Angriffswerten"}`
@@ -234,6 +234,30 @@ ipcMain.handle('ai:generate', async (ev, { provider, type, prompt }) => {
   } catch (e) {
     return { ok: false, error: e.message };
   }
+});
+
+// ---------- Datei-Export (z. B. Foundry VTT) ----------
+ipcMain.handle('file:saveText', async (ev, { defaultName, content }) => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Exportieren',
+    defaultPath: defaultName || 'export.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+  if (!filePath) return { ok: false };
+  fs.writeFileSync(filePath, content, 'utf8');
+  return { ok: true };
+});
+
+ipcMain.handle('file:saveMany', async (ev, { files }) => {
+  const { filePaths } = await dialog.showOpenDialog({
+    title: 'Zielordner für Export wählen',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (!filePaths || !filePaths.length) return { ok: false };
+  for (const f of files) {
+    fs.writeFileSync(path.join(filePaths[0], f.name), f.content, 'utf8');
+  }
+  return { ok: true, count: files.length };
 });
 
 // ---------- Homebrew (eigene Monster & Items, nur lokal) ----------

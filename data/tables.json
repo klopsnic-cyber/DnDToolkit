@@ -166,5 +166,51 @@
       { "name": "Schlüssel ohne Schloss", "preis": "35 gp", "desc": "Kunstvoll gefertigt. Irgendwo wartet die passende Tür." },
       { "name": "Porträt, das die Augen verdreht", "preis": "55 gp", "desc": "Nur wenn niemand direkt hinsieht." }
     ]
+  },
+  "stadt": {
+    "namePraefix": ["Alten", "Grau", "Silber", "Raben", "Nebel", "Stein", "Grün", "Wolfs", "Königs", "Falken", "Dorn", "Eisen", "Gold", "Weiden", "Sturm", "Bären"],
+    "nameSuffix": ["furt", "hafen", "bruck", "heim", "tal", "wacht", "berg", "feld", "münde", "hagen", "stein", "brunn", "dorf", "au", "moor"],
+    "groessen": [
+      { "id": "weiler", "label": "Weiler", "einwohner": [40, 300], "laeden": [1, 2], "tavernen": 1, "npcs": 2 },
+      { "id": "dorf", "label": "Dorf", "einwohner": [300, 1000], "laeden": [2, 4], "tavernen": 1, "npcs": 3 },
+      { "id": "kleinstadt", "label": "Kleinstadt", "einwohner": [1000, 6000], "laeden": [4, 6], "tavernen": 2, "npcs": 4 },
+      { "id": "stadt", "label": "Stadt", "einwohner": [6000, 25000], "laeden": [6, 9], "tavernen": 3, "npcs": 5 },
+      { "id": "grossstadt", "label": "Großstadt", "einwohner": [25000, 90000], "laeden": [9, 12], "tavernen": 4, "npcs": 6 }
+    ],
+    "regierung": ["ein gewählter Bürgermeister", "ein Rat der Gildenmeister", "ein adliger Vogt", "eine Priesterschaft", "ein Militärkommandant", "eine Händlerdynastie", "ein greiser Dorfältester", "eine heimlich regierende Diebesgilde", "ein Rat der Familienoberhäupter"],
+    "merkmal": [
+      "berühmt für sein Bier", "liegt an einer alten Handelsstraße", "wird von Nebelbänken heimgesucht", "hat eine halb verfallene Burgruine auf dem Hügel",
+      "lebt vom Erzabbau", "hat heiße Quellen mit Heilwirkung", "wurde auf Ruinen einer älteren Stadt erbaut", "feiert gerade ein Erntefest",
+      "leidet unter einer Missernte", "hat einen Markt, der weithin bekannt ist", "wird nachts von niemandem verlassen – aus gutem Grund",
+      "hat eine Brücke, an der ein Wegezoll verlangt wird", "beherbergt einen kleinen Magierturm", "hat ein uraltes Heiligtum im Zentrum"
+    ],
+    "verteidigung": ["eine hölzerne Palisade und eine Handvoll Milizionäre", "eine Stadtmauer mit Wachtürmen", "nur der Mut seiner Bewohner", "eine gut ausgebildete Stadtwache", "ein alter Wachturm und zwei verschlafene Wachen", "Söldner im Dienst des Stadtherrn"],
+    "aemter": ["Oberhaupt", "Wachhauptmann", "Priester/in", "Heiler/in", "Schmiedemeister/in", "Gildensprecher/in", "Wirt/in des größten Gasthauses", "Stadtschreiber", "Kräuterkundige/r", "Fährmann/-frau"],
+    "tavernenName": {
+      "praefix": ["Zum Betrunkenen", "Zur Singenden", "Zum Tanzenden", "Zur Durstigen", "Zum Lachenden", "Zur Schielenden", "Zum Müden", "Zur Goldenen", "Zum Rußigen", "Zur Letzten"],
+      "suffixM": ["Greif", "Barden", "Kobold", "Eber", "Pilger", "Drachen", "Bock", "Bergmann", "Kessel", "Wanderer"],
+      "suffixF": ["Nixe", "Harfe", "Elfe", "Krähe", "Laterne", "Axt", "Meerjungfrau", "Kanne", "Hexe", "Rast"]
+    },
+    "tavernenGericht": ["deftiger Wildschweinbraten mit Pflaumen", "Fischsuppe nach Art des Hauses", "Zwiebelkuchen mit dunklem Bier", "gebratene Forelle in Butter", "Lammeintopf mit Wurzelgemüse", "Honigbrot mit Schmalz", "scharfes Gulasch, Rezept streng geheim", "Pilzpfanne mit Speck", "gefüllte Teigtaschen, Inhalt wechselt täglich"],
+    "tavernenBesonderheit": [
+      "ein Barde spielt jeden Abend – leider immer dasselbe Lied", "Würfelspiel im Hinterzimmer, hohe Einsätze",
+      "der Wirt nimmt auch Tauschware", "eine sprechende Elster sitzt über dem Tresen", "berüchtigt für Schlägereien am Zahltag",
+      "Treffpunkt der örtlichen Jägerschaft", "hat ein Zimmer, das niemand mieten will – Zimmer 3", "das Bier wird nach Zwergenrezept gebraut",
+      "Fremde bekommen den ersten Krug aufs Haus", "an der Wand hängt ein ausgestopfter Wyvernkopf mit Geschichte"
+    ],
+    "geruechte": [
+      "Im alten Brunnen soll nachts ein Wispern zu hören sein.",
+      "Der Müller hat seit Wochen Licht in der Mühle – aber niemand sieht ihn je.",
+      "Ein Händler zahlt gut für Eskorte zur nächsten Stadt. Zu gut.",
+      "In den Hügeln wurden Wolfsspuren gefunden – zu groß für Wölfe.",
+      "Das Grab auf dem Friedhof, das immer frisch aussieht? Niemand weiß, wer darin liegt.",
+      "Die Kinder erzählen von einer 'freundlichen Frau im Wald', die Süßes verschenkt.",
+      "Ein Bauer schwört, sein Vieh spricht nachts miteinander.",
+      "Unter der alten Eiche soll ein Schatz aus Kriegstagen vergraben sein.",
+      "Der neue Priester kennt seltsam wenige Gebete.",
+      "Jede Vollmondnacht fehlt einem Haushalt ein Huhn. Immer nur eines.",
+      "Ein Fremder fragte letzte Woche nach genau eurer Gruppe – namentlich.",
+      "Die Stadtwache patrouilliert neuerdings nicht mehr an der Ostmauer. Warum wohl?"
+    ]
   }
 }

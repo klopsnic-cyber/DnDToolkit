@@ -15,10 +15,13 @@ Dunkles Fantasy-Design, alle Daten offline mit dabei, aktualisiert sich selbst �
 
 - **⚔️ Encounter-Generator** *(neu in 1.3)* – ausbalancierte Begegnungen nach dem offiziellen XP-Budget-System: Gruppengröße, Stufe und Schwierigkeit wählen, fertig. Verschiedene Zusammensetzungen (Einzelgegner, Gruppen, Boss mit Begleitern), Filter nach Monstertyp und Quelle, jedes Monster austauschbar, Anzahl anpassbar, Statblock per Klick, speicherbar mit Notizen.
 
+- **🏰 Städte-Generator** *(neu in 1.4)* – komplette Siedlungen vom Weiler bis zur Großstadt: Name, Regierung, Merkmal, Verteidigung, wichtige NPCs mit Persönlichkeit, Tavernen mit Wirt/Gericht/Gerücht und richtige, anklickbare Händler-Läden. Gerüchte als Abenteuer-Aufhänger.
+- **🎲 Foundry-VTT-Export** *(neu in 1.4)* – Monster, magische Items, Händler (als NPC mit Warenbestand) und ganze Encounter als dnd5e-JSON exportieren. Import in Foundry: Akteur/Item anlegen → Rechtsklick → *Import Data* → Datei wählen.
+- **Item-Statuswerte** *(neu in 1.4)* – Homebrew-Items mit Typ, Schaden, Bonus, RK und Regeln; auch der KI-Assistent liefert jetzt vollständige Spielwerte.
+
 ### Roadmap
 
-- **V3: 🏰 Städte-Generator** – Städte mit Läden, Tavernen, NPCs und Gerüchten
-- Danach: NPC-Generator, Loot-Generator, Tavernen-Generator
+- NPC-Generator, Loot-Generator, Tavernen-Generator
 
 ---
 

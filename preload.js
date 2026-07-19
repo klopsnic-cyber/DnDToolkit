@@ -15,5 +15,7 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (s) => ipcRenderer.invoke('settings:save', s),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
-  aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req)
+  aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req),
+  saveText: (req) => ipcRenderer.invoke('file:saveText', req),
+  saveMany: (req) => ipcRenderer.invoke('file:saveMany', req)
 });

@@ -357,9 +357,93 @@
     return recalcEncounter(enc);
   }
 
+  // ============================================================
+  // Städte-Generator
+  // ============================================================
+  function genPersonName(names) {
+    const rasseId = rnd(Object.keys(names));
+    const geschlecht = chance(0.5) ? 'm' : 'f';
+    return { name: genName(names, rasseId, geschlecht), rasse: names[rasseId].label, geschlecht };
+  }
+
+  function genTaverne(data) {
+    const st = data.tables.stadt;
+    const fem = chance(0.5);
+    let praefix = rnd(st.tavernenName.praefix);
+    if (fem && praefix.startsWith('Zum ')) praefix = praefix.replace(/^Zum /, 'Zur ').replace(/en$/, 'e');
+    if (!fem && praefix.startsWith('Zur ')) praefix = praefix.replace(/^Zur /, 'Zum ').replace(/e$/, 'en');
+    const wirt = genPersonName(data.names);
+    return {
+      name: praefix + ' ' + rnd(fem ? st.tavernenName.suffixF : st.tavernenName.suffixM),
+      wirt: wirt.name + ' (' + wirt.rasse + ')',
+      gericht: rnd(st.tavernenGericht),
+      besonderheit: rnd(st.tavernenBesonderheit),
+      geruecht: rnd(st.geruechte)
+    };
+  }
+
+  function genCityName(st) {
+    for (let i = 0; i < 10; i++) {
+      const p = rnd(st.namePraefix), s = rnd(st.nameSuffix);
+      if (!p.toLowerCase().includes(s) && !s.includes(p.toLowerCase())) return p + s;
+    }
+    return rnd(st.namePraefix) + rnd(st.nameSuffix);
+  }
+
+  // opts: { groesse? }
+  function generateCity(data, opts = {}) {
+    const st = data.tables.stadt;
+    const groesse = opts.groesse
+      ? st.groessen.find((g) => g.id === opts.groesse)
+      : rnd(st.groessen);
+
+    const nLaeden = rndInt(groesse.laeden[0], groesse.laeden[1]);
+    // Ladentypen möglichst nicht doppelt
+    const typen = data.tables.laeden.slice().sort(() => Math.random() - 0.5);
+    const laeden = [];
+    for (let i = 0; i < nLaeden; i++) {
+      const typ = typen[i % typen.length];
+      laeden.push(generateMerchant(data, { ladenTyp: typ.id }));
+    }
+
+    const tavernen = Array.from({ length: groesse.tavernen }, () => genTaverne(data));
+
+    const aemter = st.aemter.slice().sort(() => Math.random() - 0.5).slice(0, groesse.npcs);
+    const npcs = aemter.map((amt) => {
+      const p = genPersonName(data.names);
+      return { amt, name: p.name, rasse: p.rasse, wesen: rnd(data.tables.persoenlichkeit), eigenheit: rnd(data.tables.eigenheit) };
+    });
+
+    const geruechte = st.geruechte.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+
+    return {
+      id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      type: 'stadt',
+      createdAt: new Date().toISOString(),
+      name: genCityName(st),
+      groesse: groesse.id,
+      groesseLabel: groesse.label,
+      einwohner: rndInt(groesse.einwohner[0], groesse.einwohner[1]),
+      regierung: rnd(st.regierung),
+      merkmal: rnd(st.merkmal),
+      verteidigung: rnd(st.verteidigung),
+      laeden, tavernen, npcs, geruechte,
+      notizen: ''
+    };
+  }
+
+  const cityReroll = {
+    name: (data, s) => { s.name = genCityName(data.tables.stadt); return s; },
+    regierung: (data, s) => { s.regierung = rnd(data.tables.stadt.regierung); return s; },
+    merkmal: (data, s) => { s.merkmal = rnd(data.tables.stadt.merkmal); return s; },
+    verteidigung: (data, s) => { s.verteidigung = rnd(data.tables.stadt.verteidigung); return s; },
+    geruechte: (data, s) => { s.geruechte = data.tables.stadt.geruechte.slice().sort(() => Math.random() - 0.5).slice(0, 3); return s; }
+  };
+
   root.Generator = {
     generateMerchant, reroll, fmtPrice, toCopper, pickInventory,
     generateEncounter, recalcEncounter, swapMonster, monsterXp,
+    generateCity, cityReroll, genTaverne,
     THRESHOLDS, DIFF_LABEL
   };
 })(typeof window !== 'undefined' ? window : module.exports);
