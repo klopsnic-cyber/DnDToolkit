@@ -28,6 +28,7 @@ function toast(msg) {
 (async function init() {
   DATA = await window.api.loadData();
   STORE = await window.api.getAll();
+  DATA.homebrew = await window.api.getHomebrew();
   try { $('#version').textContent = 'v' + (await window.api.getVersion()); } catch (e) {}
 
   $$('.nav-btn:not(.disabled)').forEach((b) =>
@@ -45,6 +46,8 @@ function switchView(view) {
 function renderView() {
   if (currentView === 'haendler') renderMerchantView();
   else if (currentView === 'bibliothek') renderLibrary();
+  else if (currentView === 'kompendium') renderCompendium();
+  else if (currentView === 'homebrew') renderHomebrew();
   else if (currentView === 'notizen') renderNotes();
 }
 
@@ -237,6 +240,250 @@ function renderLibrary(filterText = '') {
       toast('Eintrag gelöscht');
     })
   );
+}
+
+// ================= Kompendium =================
+let compState = { tab: 'monster', q: '', src: '' };
+
+function allMonsters() {
+  return DATA.monsters.concat((DATA.homebrew.monsters || []).map((h) => ({ ...h, src: 'Homebrew' })));
+}
+function allMagicItems() {
+  return DATA.magicItems.concat(
+    (DATA.homebrew.items || []).map((h) => ({ ...h, src: 'Homebrew', desc: h.desc || '' }))
+  );
+}
+
+function renderCompendium() {
+  const isMon = compState.tab === 'monster';
+  const list = isMon ? allMonsters() : allMagicItems();
+  const sources = [...new Set(list.map((x) => x.src))];
+
+  const q = compState.q.toLowerCase();
+  let hits = list.filter(
+    (x) =>
+      (!q || x.name.toLowerCase().includes(q) || (isMon && (x.type || '').toLowerCase().includes(q))) &&
+      (!compState.src || x.src === compState.src)
+  );
+  const total = hits.length;
+  hits = hits.slice(0, 200);
+
+  const rows = hits.map((x, i) => isMon
+    ? `<tr class="comp-row" data-i="${i}"><td><span class="itemname">${esc(x.name)}</span></td><td>${esc(x.cr ?? '')}</td><td>${esc(x.type || '')}</td><td>${esc(x.size || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
+    : `<tr class="comp-row" data-i="${i}"><td><span class="itemname magic">${esc(x.name)}</span></td><td>${esc(x.rarity || '')}</td><td>${esc(x.cat || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
+  ).join('');
+
+  main().innerHTML = `
+    <h1>Kompendium</h1>
+    <div class="subtitle">${allMonsters().length.toLocaleString('de-DE')} Monster und ${allMagicItems().length.toLocaleString('de-DE')} magische Gegenstände – komplett offline.</div>
+    <div class="controls">
+      <div class="tabs">
+        <button class="btn ${isMon ? '' : 'ghost'}" id="tabMon">🐲 Monster</button>
+        <button class="btn ${isMon ? 'ghost' : ''}" id="tabItems">✨ Magische Items</button>
+      </div>
+      <div class="field" style="flex:1"><label>Suche</label><input type="text" id="compSearch" value="${esc(compState.q)}" placeholder="🔍 Name${isMon ? ' oder Typ' : ''}…" /></div>
+      <div class="field"><label>Quelle</label><select id="compSrc"><option value="">Alle</option>${sources.map((s) => `<option ${s === compState.src ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
+    </div>
+    <div class="comp-count">${total.toLocaleString('de-DE')} Treffer${total > 200 ? ' (erste 200 angezeigt – Suche verfeinern)' : ''}</div>
+    <table class="comp-table">
+      <thead>${isMon ? '<tr><th>Name</th><th>HG</th><th>Typ</th><th>Größe</th><th>Quelle</th></tr>' : '<tr><th>Name</th><th>Seltenheit</th><th>Kategorie</th><th>Quelle</th></tr>'}</thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">Keine Treffer.</td></tr>'}</tbody>
+    </table>
+    <div id="modal"></div>`;
+
+  $('#tabMon').addEventListener('click', () => { compState = { tab: 'monster', q: '', src: '' }; renderCompendium(); });
+  $('#tabItems').addEventListener('click', () => { compState = { tab: 'items', q: '', src: '' }; renderCompendium(); });
+  const s = $('#compSearch');
+  s.addEventListener('input', () => { compState.q = s.value; renderCompendium(); });
+  s.focus(); s.setSelectionRange(s.value.length, s.value.length);
+  $('#compSrc').addEventListener('change', (e) => { compState.src = e.target.value; renderCompendium(); });
+  $$('.comp-row').forEach((r) =>
+    r.addEventListener('click', () => (isMon ? showStatblock(hits[+r.dataset.i]) : showItemDetail(hits[+r.dataset.i])))
+  );
+}
+
+const mod = (v) => { const m = Math.floor((v - 10) / 2); return (m >= 0 ? '+' : '') + m; };
+
+function showStatblock(m) {
+  const stats = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+  const line = (label, val) => (val ? `<div class="sb-line"><b>${label}</b> ${esc(val)}</div>` : '');
+  const block = (title, arr) => (arr && arr.length)
+    ? `<div class="sb-sect">${title ? `<h3>${title}</h3>` : ''}${arr.map((a) => `<p><b><i>${esc(a.name)}.</i></b> ${esc(a.desc || '')}</p>`).join('')}</div>` : '';
+
+  $('#modal').innerHTML = `
+    <div class="modal-bg">
+      <div class="statblock">
+        <button class="modal-close">✕</button>
+        <h2>${esc(m.name)}</h2>
+        <div class="sb-meta">${esc([m.size, m.type, m.subtype].filter(Boolean).join(' '))}${m.align ? ', ' + esc(m.align) : ''} · <span class="dim">${esc(m.src)}</span></div>
+        <hr />
+        ${line('Rüstungsklasse', m.ac)}
+        ${line('Trefferpunkte', m.hp + (m.hd ? ' (' + m.hd + ')' : ''))}
+        ${line('Bewegung', m.speed)}
+        <div class="sb-stats">${stats.map((s) => `<div><b>${s.toUpperCase()}</b><br />${m[s] ?? '–'} (${m[s] ? mod(m[s]) : '–'})</div>`).join('')}</div>
+        ${line('Immunitäten', m.imm)}
+        ${line('Resistenzen', m.res)}
+        ${line('Verwundbarkeiten', m.vul)}
+        ${line('Zustandsimmunitäten', m.condImm)}
+        ${line('Sinne', m.senses)}
+        ${line('Sprachen', m.langs)}
+        ${line('Herausforderung', m.cr + ' (' + (m.xp || 0).toLocaleString('de-DE') + ' XP)')}
+        ${block('', m.traits)}
+        ${block('Aktionen', m.actions)}
+        ${block('Legendäre Aktionen', m.legendary)}
+        ${m.text ? `<div class="sb-sect"><p>${esc(m.text)}</p></div>` : ''}
+      </div>
+    </div>`;
+  $('.modal-close').addEventListener('click', () => ($('#modal').innerHTML = ''));
+  $('.modal-bg').addEventListener('click', (e) => { if (e.target.classList.contains('modal-bg')) $('#modal').innerHTML = ''; });
+}
+
+function showItemDetail(it) {
+  $('#modal').innerHTML = `
+    <div class="modal-bg">
+      <div class="statblock">
+        <button class="modal-close">✕</button>
+        <h2 class="magic">${esc(it.name)}</h2>
+        <div class="sb-meta">${esc([it.rarity, it.cat].filter(Boolean).join(' · '))}${it.attune ? ' · Einstimmung erforderlich' : ''} · <span class="dim">${esc(it.src)}</span>${it.preis ? ' · ' + esc(it.preis) : ''}</div>
+        <hr />
+        <div class="sb-sect"><p style="white-space:pre-wrap">${esc(it.desc || 'Keine Beschreibung.')}</p></div>
+      </div>
+    </div>`;
+  $('.modal-close').addEventListener('click', () => ($('#modal').innerHTML = ''));
+  $('.modal-bg').addEventListener('click', (e) => { if (e.target.classList.contains('modal-bg')) $('#modal').innerHTML = ''; });
+}
+
+// ================= Homebrew =================
+let hbState = { tab: 'items', editId: null };
+
+async function persistHomebrew() {
+  DATA.homebrew = await window.api.saveHomebrew(DATA.homebrew);
+}
+
+function renderHomebrew() {
+  const isItems = hbState.tab === 'items';
+  const hb = DATA.homebrew;
+  const laeden = DATA.tables.laeden;
+  const editing = hbState.editId
+    ? (isItems ? hb.items : hb.monsters).find((x) => x.id === hbState.editId)
+    : null;
+
+  const listCards = (isItems ? hb.items : hb.monsters).map((x) => `
+    <div class="lib-card" data-id="${x.id}">
+      <button class="del" data-id="${x.id}" title="Löschen">🗑</button>
+      <div class="t">${isItems ? '✨' : '🐲'} ${esc(x.name)}</div>
+      <div class="s">${isItems
+        ? esc([x.rarity, x.preis, x.laden === 'alle' ? 'alle Läden' : (laeden.find((l) => l.id === x.laden)?.label || 'kein Laden')].filter(Boolean).join(' · '))
+        : esc(['HG ' + (x.cr || '?'), x.type, x.size].filter(Boolean).join(' · '))}</div>
+    </div>`).join('');
+
+  const itemForm = `
+    <div class="field"><label>Name *</label><input type="text" id="hbName" value="${esc(editing?.name || '')}" /></div>
+    <div class="field"><label>Seltenheit</label><select id="hbRarity">${['', 'Common', 'Uncommon', 'Rare', 'Very Rare', 'Legendary'].map((r) => `<option ${editing?.rarity === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+    <div class="field"><label>Preis</label><input type="text" id="hbPreis" value="${esc(editing?.preis || '')}" placeholder="z. B. 150 gp" /></div>
+    <div class="field"><label>Erscheint bei Händlern</label><select id="hbLaden">
+      <option value="">Nie (nur Kompendium)</option>
+      <option value="alle" ${editing?.laden === 'alle' ? 'selected' : ''}>Jeder Ladentyp</option>
+      ${laeden.map((l) => `<option value="${l.id}" ${editing?.laden === l.id ? 'selected' : ''}>${l.icon} ${esc(l.label)}</option>`).join('')}
+    </select></div>
+    <div class="field" style="flex-basis:100%"><label>Beschreibung</label><textarea id="hbDesc" style="min-height:70px">${esc(editing?.desc || '')}</textarea></div>`;
+
+  const monForm = `
+    <div class="field"><label>Name *</label><input type="text" id="hbName" value="${esc(editing?.name || '')}" /></div>
+    <div class="field"><label>Herausforderungsgrad</label><input type="text" id="hbCr" value="${esc(editing?.cr || '')}" placeholder="z. B. 1/2 oder 5" style="max-width:110px" /></div>
+    <div class="field"><label>Typ</label><input type="text" id="hbType" value="${esc(editing?.type || '')}" placeholder="z. B. Untoter" /></div>
+    <div class="field"><label>Größe</label><select id="hbSize">${['Tiny', 'Small', 'Medium', 'Large', 'Huge', 'Gargantuan'].map((s) => `<option ${editing?.size === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+    <div class="field"><label>RK</label><input type="text" id="hbAc" value="${esc(editing?.ac ?? '')}" style="max-width:70px" /></div>
+    <div class="field"><label>TP</label><input type="text" id="hbHp" value="${esc(editing?.hp ?? '')}" style="max-width:70px" /></div>
+    <div class="field"><label>Bewegung</label><input type="text" id="hbSpeed" value="${esc(editing?.speed || '')}" placeholder="z. B. walk 30 ft." /></div>
+    <div class="field" style="flex-basis:100%"><label>Fähigkeiten & Aktionen (Freitext)</label><textarea id="hbText" style="min-height:90px">${esc(editing?.text || '')}</textarea></div>`;
+
+  main().innerHTML = `
+    <h1>Homebrew</h1>
+    <div class="subtitle">Eigene Inhalte – bleiben lokal auf deinem PC und tauchen im Kompendium und bei Händlern auf. Auch zum privaten Übertragen aus deinen Regelbüchern.</div>
+    <div class="controls">
+      <div class="tabs">
+        <button class="btn ${isItems ? '' : 'ghost'}" id="hbTabItems">✨ Items (${hb.items.length})</button>
+        <button class="btn ${isItems ? 'ghost' : ''}" id="hbTabMon">🐲 Monster (${hb.monsters.length})</button>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn ghost" id="hbImport">📥 Importieren</button>
+      <button class="btn ghost" id="hbExport">📤 Exportieren</button>
+    </div>
+    <div class="note-editor">
+      <h2>${editing ? 'Bearbeiten: ' + esc(editing.name) : (isItems ? 'Neues Item anlegen' : 'Neues Monster anlegen')}</h2>
+      <div class="controls" style="margin:0;border:none;padding:0;background:none">${isItems ? itemForm : monForm}</div>
+      <div><button class="btn" id="hbSave">${editing ? '💾 Speichern' : '+ Anlegen'}</button>
+      ${editing ? '<button class="btn ghost" id="hbCancel">Abbrechen</button>' : ''}</div>
+    </div>
+    ${listCards ? `<div class="lib-grid">${listCards}</div>` : '<div class="empty">Noch keine eigenen ' + (isItems ? 'Items' : 'Monster') + '.</div>'}`;
+
+  $('#hbTabItems').addEventListener('click', () => { hbState = { tab: 'items', editId: null }; renderHomebrew(); });
+  $('#hbTabMon').addEventListener('click', () => { hbState = { tab: 'monster', editId: null }; renderHomebrew(); });
+
+  $('#hbSave').addEventListener('click', async () => {
+    const name = $('#hbName').value.trim();
+    if (!name) { toast('Name fehlt'); return; }
+    let obj;
+    if (isItems) {
+      obj = {
+        id: editing?.id || 'hbi_' + Date.now(),
+        name, rarity: $('#hbRarity').value || null,
+        preis: $('#hbPreis').value.trim() || null,
+        laden: $('#hbLaden').value || null,
+        cat: 'wondrous-items',
+        desc: $('#hbDesc').value.trim()
+      };
+    } else {
+      obj = {
+        id: editing?.id || 'hbm_' + Date.now(),
+        name, cr: $('#hbCr').value.trim() || '0',
+        type: $('#hbType').value.trim() || null,
+        size: $('#hbSize').value,
+        ac: $('#hbAc').value.trim() || null,
+        hp: $('#hbHp').value.trim() || null,
+        speed: $('#hbSpeed').value.trim() || null,
+        text: $('#hbText').value.trim(),
+        xp: 0
+      };
+    }
+    const list = isItems ? DATA.homebrew.items : DATA.homebrew.monsters;
+    const i = list.findIndex((x) => x.id === obj.id);
+    if (i >= 0) list[i] = obj; else list.unshift(obj);
+    await persistHomebrew();
+    hbState.editId = null;
+    renderHomebrew();
+    toast('Gespeichert ✓');
+  });
+  if (editing) $('#hbCancel').addEventListener('click', () => { hbState.editId = null; renderHomebrew(); });
+
+  $$('.lib-card').forEach((c) =>
+    c.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('del')) return;
+      hbState.editId = c.dataset.id;
+      renderHomebrew();
+    })
+  );
+  $$('.lib-card .del').forEach((b) =>
+    b.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (isItems) DATA.homebrew.items = DATA.homebrew.items.filter((x) => x.id !== b.dataset.id);
+      else DATA.homebrew.monsters = DATA.homebrew.monsters.filter((x) => x.id !== b.dataset.id);
+      await persistHomebrew();
+      renderHomebrew();
+      toast('Gelöscht');
+    })
+  );
+
+  $('#hbExport').addEventListener('click', async () => {
+    const r = await window.api.exportHomebrew();
+    if (r.ok) toast('Exportiert ✓');
+  });
+  $('#hbImport').addEventListener('click', async () => {
+    const r = await window.api.importHomebrew();
+    if (r.ok) { DATA.homebrew = r.homebrew; renderHomebrew(); toast('Importiert ✓'); }
+    else if (r.error) toast(r.error);
+  });
 }
 
 // ================= Notizen =================

@@ -8,7 +8,9 @@ Dunkles Fantasy-Design, alle Daten offline mit dabei, aktualisiert sich selbst �
 - **⚒️ Händler-Generator** – erwürfelt komplette Händler mit Name, Rasse, Geschlecht, Ladenname, Persönlichkeit, Eigenheit, Stimme, Feilsch-Verhalten, Geheimnis und vollem Inventar mit Preisen. 12 Ladentypen (Schmiede, Alchemist, Juwelier, Kuriositätenladen …), 4 Qualitätsstufen mit magischen Items je nach Seltenheit. Jedes Detail einzeln neu würfelbar, Items lassen sich entfernen oder eigene hinzufügen.
 - **📜 Bibliothek** – jede Kreation lässt sich speichern, durchsuchen, wieder öffnen und weiterbearbeiten.
 - **✒️ Notizen** – freie Kampagnen-Notizen, plus eigene Notizen direkt an jedem Händler.
-- **Offline-Daten** – komplettes SRD 5.1 (Ausrüstung, magische Gegenstände, Monster) ist mitgeliefert, keine Internetverbindung nötig.
+- **📖 Kompendium** *(neu in 1.1)* – 2.824 Monster und 1.742 magische Gegenstände durchsuchbar, mit vollständigen Statblöcken. Quellen: SRD 5.1, Tome of Beasts 1–3, Creature Codex, Monstrous Menagerie, Black Flag, Vault of Magic, Level Up (A5E), Tome of Heroes – alles frei lizenziert (Details in `data/LICENSE-SRD.md`).
+- **🧪 Homebrew-Editor** *(neu in 1.1)* – eigene Monster und Items anlegen, im- und exportieren. Homebrew-Items können Händler-Inventaren zugeordnet werden. Alles bleibt lokal auf deinem PC (`%APPDATA%/dnd-toolkit/homebrew.json`) und landet nicht im Repo.
+- **Offline-Daten** – alle Daten sind mitgeliefert, keine Internetverbindung nötig.
 
 ### Roadmap
 

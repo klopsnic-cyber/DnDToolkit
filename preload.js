@@ -7,5 +7,9 @@ contextBridge.exposeInMainWorld('api', {
   saveNote: (note) => ipcRenderer.invoke('store:saveNote', note),
   deleteNote: (id) => ipcRenderer.invoke('store:deleteNote', id),
   getVersion: () => ipcRenderer.invoke('app:version'),
-  loadData: () => ipcRenderer.invoke('data:load')
+  loadData: () => ipcRenderer.invoke('data:load'),
+  getHomebrew: () => ipcRenderer.invoke('homebrew:get'),
+  saveHomebrew: (h) => ipcRenderer.invoke('homebrew:save', h),
+  exportHomebrew: () => ipcRenderer.invoke('homebrew:export'),
+  importHomebrew: () => ipcRenderer.invoke('homebrew:import')
 });

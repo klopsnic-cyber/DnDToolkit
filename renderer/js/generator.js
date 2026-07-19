@@ -92,6 +92,23 @@
       });
     }
 
+    // Homebrew-Items, die diesem Ladentyp zugeordnet sind
+    const hbPool = ((data.homebrew && data.homebrew.items) || []).filter(
+      (h) => h.laden === laden.id || h.laden === 'alle'
+    );
+    const hbN = Math.min(hbPool.length, rndInt(0, 2));
+    for (let i = 0; i < hbN; i++) {
+      const h = rnd(hbPool);
+      if (seen.has(h.name)) continue;
+      seen.add(h.name);
+      const preis = toCopper(h.preis || '0 gp');
+      items.push({
+        name: h.name, desc: h.desc || null, typ: 'homebrew',
+        raritaet: h.rarity || null,
+        preisKupfer: preis, preis: fmtPrice(preis), anzahl: 1
+      });
+    }
+
     // Magische Items je nach Qualität & Ladentyp
     const magieAnzahl = laden.extraMagie
       ? rndInt(1, laden.extraMagie)

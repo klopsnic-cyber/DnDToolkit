@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -59,6 +59,63 @@ ipcMain.handle('store:deleteNote', (ev, id) => {
 });
 
 ipcMain.handle('app:version', () => app.getVersion());
+
+// ---------- Homebrew (eigene Monster & Items, nur lokal) ----------
+const homebrewPath = () => path.join(app.getPath('userData'), 'homebrew.json');
+
+function loadHomebrew() {
+  try {
+    const h = JSON.parse(fs.readFileSync(homebrewPath(), 'utf8'));
+    return { monsters: h.monsters || [], items: h.items || [] };
+  } catch (e) {
+    return { monsters: [], items: [] };
+  }
+}
+
+function saveHomebrew(h) {
+  fs.writeFileSync(homebrewPath(), JSON.stringify(h, null, 2), 'utf8');
+}
+
+ipcMain.handle('homebrew:get', () => loadHomebrew());
+
+ipcMain.handle('homebrew:save', (ev, h) => { saveHomebrew(h); return h; });
+
+ipcMain.handle('homebrew:export', async () => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Homebrew exportieren',
+    defaultPath: 'homebrew-export.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+  if (!filePath) return { ok: false };
+  fs.writeFileSync(filePath, JSON.stringify(loadHomebrew(), null, 2), 'utf8');
+  return { ok: true };
+});
+
+ipcMain.handle('homebrew:import', async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    title: 'Homebrew importieren',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile']
+  });
+  if (!filePaths || !filePaths.length) return { ok: false };
+  try {
+    const imp = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
+    const h = loadHomebrew();
+    const merge = (list, add) => {
+      for (const x of add || []) {
+        if (!x || !x.name) continue;
+        const i = list.findIndex((y) => y.id === x.id || y.name === x.name);
+        if (i >= 0) list[i] = x; else list.push(x);
+      }
+    };
+    merge(h.monsters, imp.monsters);
+    merge(h.items, imp.items);
+    saveHomebrew(h);
+    return { ok: true, homebrew: h };
+  } catch (e) {
+    return { ok: false, error: 'Datei konnte nicht gelesen werden: ' + e.message };
+  }
+});
 
 // Spieldaten (SRD + eigene Tabellen) aus dem data-Ordner laden
 ipcMain.handle('data:load', () => {
