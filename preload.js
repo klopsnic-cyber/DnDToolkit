@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld('api', {
   saveSettings: (s) => ipcRenderer.invoke('settings:save', s),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   aiGenerate: (req) => ipcRenderer.invoke('ai:generate', req),
+  saveCampaign: (c) => ipcRenderer.invoke('store:saveCampaign', c),
+  deleteCampaign: (id) => ipcRenderer.invoke('store:deleteCampaign', id),
+  createBackup: () => ipcRenderer.invoke('backup:create'),
+  restoreBackup: () => ipcRenderer.invoke('backup:restore'),
   saveText: (req) => ipcRenderer.invoke('file:saveText', req),
   saveMany: (req) => ipcRenderer.invoke('file:saveMany', req)
 });

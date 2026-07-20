@@ -238,6 +238,20 @@ h2.magic, .itemname.magic { color: var(--magic-bright); }
 .note-editor .field { margin-bottom: 4px; }
 .note-editor input[type="password"] { width: 100%; max-width: 480px; }
 
+/* ---------- NPC-Hintergrund ---------- */
+.npc-story {
+  margin-top: 14px; padding: 14px 16px;
+  background: var(--bg-card); border-left: 3px solid var(--gold);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.npc-story p { font-size: 14.5px; line-height: 1.6; }
+
+/* ---------- Kampagnen ---------- */
+.camp-assign {
+  font-size: 11px; padding: 2px 4px; margin-left: 4px;
+  background: var(--bg-panel); max-width: 150px;
+}
+
 /* ---------- Toast ---------- */
 #toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);

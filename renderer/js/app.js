@@ -9,6 +9,8 @@ let STORE = { entries: [], notes: [] };
 let currentMerchant = null;
 let currentEncounter = null;
 let currentCity = null;
+let currentLoot = null;
+let currentNpc = null;
 let currentView = 'haendler';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -51,6 +53,9 @@ function renderView() {
   if (currentView === 'haendler') renderMerchantView();
   else if (currentView === 'encounter') renderEncounterView();
   else if (currentView === 'stadt') renderCityView();
+  else if (currentView === 'loot') renderLootView();
+  else if (currentView === 'npc') renderNpcView();
+  else if (currentView === 'suche') renderGlobalSearch();
   else if (currentView === 'bibliothek') renderLibrary();
   else if (currentView === 'kompendium') renderCompendium();
   else if (currentView === 'homebrew') renderHomebrew();
@@ -471,9 +476,306 @@ function renderCityCard() {
   });
 }
 
+// ================= NPCs =================
+function renderNpcView() {
+  const rassen = Object.entries(DATA.names).map(([id, r]) => `<option value="${id}">${esc(r.label)}</option>`).join('');
+  const rollen = DATA.tables.npc.rollen.map((r) => `<option>${esc(r)}</option>`).join('');
+
+  main().innerHTML = `
+    <h1>NPC-Generator</h1>
+    <div class="subtitle">Lebendige Nichtspielercharaktere mit Motivation, Bindung, Makel und Geheimnis – für jede Begegnung am Wegesrand.</div>
+    <div class="controls">
+      <div class="field"><label>Rasse</label><select id="npcRasse"><option value="">Zufällig</option>${rassen}</select></div>
+      <div class="field"><label>Geschlecht</label><select id="npcGeschlecht"><option value="">Zufällig</option><option value="m">Männlich</option><option value="f">Weiblich</option></select></div>
+      <div class="field"><label>Rolle</label><select id="npcRolle"><option value="">Zufällig</option>${rollen}</select></div>
+      <button class="btn big" id="btnNpcGen">🎲 NPC erwürfeln</button>
+    </div>
+    <div id="npcResult"></div>`;
+
+  $('#btnNpcGen').addEventListener('click', () => {
+    currentNpc = Generator.generateNpc(DATA, {
+      rasse: $('#npcRasse').value || undefined,
+      geschlecht: $('#npcGeschlecht').value || undefined,
+      rolle: $('#npcRolle').value || undefined
+    });
+    renderNpcCard();
+  });
+  if (currentNpc) renderNpcCard();
+}
+
+function renderNpcCard() {
+  const n = currentNpc;
+  const box = $('#npcResult');
+  if (!box || !n) return;
+
+  const row = (key, label, value, sub) => `
+    <div class="persona-row">
+      <div class="k">${label}</div>
+      <div class="v">${esc(value)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+      ${key ? `<button class="reroll" data-npc="${key}" title="Neu würfeln">🎲</button>` : ''}
+    </div>`;
+
+  const kiVerfuegbar = AI_PROVIDERS.some(([, , k]) => SETTINGS[k]);
+
+  box.innerHTML = `
+    <div class="merchant-card">
+      <div class="merchant-head">
+        <div class="icon">🧑</div>
+        <div>
+          <div class="shopname">${esc(n.name)} <button class="reroll" data-npc="name" title="Neu würfeln">🎲</button></div>
+          <div class="meta">${esc(n.rolle)} <button class="reroll" data-npc="rolle" title="Neu würfeln">🎲</button> · ${esc(n.rasseLabel)}, ${n.geschlecht === 'f' ? 'weiblich' : 'männlich'}</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="badge">${esc(n.einstellung.label)}</div>
+          <div class="dim" style="margin-top:4px;max-width:180px">${esc(n.einstellung.desc)}</div>
+        </div>
+      </div>
+      <div class="merchant-body">
+        <div class="persona">
+          <h2>Auftreten</h2>
+          ${row('aussehen', 'Aussehen', n.aussehen)}
+          ${row('wesen', 'Wesen', n.wesen)}
+          ${row('eigenheit', 'Eigenheit', n.eigenheit)}
+          ${row('stimme', 'Stimme', n.stimme)}
+          ${row('einstellung', 'Einstellung', n.einstellung.label, n.einstellung.desc)}
+        </div>
+        <div class="inventory">
+          <h2>Innenleben</h2>
+          ${row('motivation', 'Motivation', n.motivation)}
+          ${row('bindung', 'Bindung', 'Hängt an ' + n.bindung)}
+          ${row('makel', 'Makel', n.makel)}
+          ${row('geheimnis', 'Geheimnis', n.geheimnis)}
+          ${kiVerfuegbar ? `
+          <div class="ai-panel" style="margin-top:14px">
+            <h2>🤖 Hintergrundgeschichte</h2>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div class="field"><label>Anbieter</label><select id="npcAiProvider">${AI_PROVIDERS.filter(([, , k]) => SETTINGS[k]).map(([id, label]) => `<option value="${id}" ${SETTINGS.aiProvider === id ? 'selected' : ''}>${label}</option>`).join('')}</select></div>
+              <button class="btn" id="npcAiGen">✨ Geschichte schreiben lassen</button>
+            </div>
+            <div id="npcAiStatus" class="dim"></div>
+          </div>` : '<div class="ai-panel dim" style="margin-top:14px">🤖 Mit einem KI-Schlüssel in den <a href="#" id="npcGotoSettings">Einstellungen</a> kann hier eine Hintergrundgeschichte generiert werden.</div>'}
+          ${n.hintergrund ? `<div class="npc-story"><h2>Hintergrund</h2><p style="white-space:pre-wrap">${esc(n.hintergrund)}</p></div>` : ''}
+        </div>
+      </div>
+      <div class="merchant-foot">
+        <textarea id="npcNotes" placeholder="Eigene Notizen zu diesem NPC…">${esc(n.notizen)}</textarea>
+        <div class="foot-btns">
+          <button class="btn" id="btnNpcSave">💾 In Bibliothek speichern</button>
+          <button class="btn ghost" id="btnNpcCopy">📋 Als Text kopieren</button>
+          <button class="btn ghost" id="btnNpcFoundry">🎲 Foundry-Export</button>
+        </div>
+      </div>
+    </div>`;
+
+  $$('[data-npc]', box).forEach((b) =>
+    b.addEventListener('click', () => { Generator.npcReroll[b.dataset.npc](DATA, n); renderNpcCard(); })
+  );
+  $('#npcNotes').addEventListener('input', (ev) => { n.notizen = ev.target.value; });
+  $('#btnNpcSave').addEventListener('click', async () => {
+    STORE = await window.api.saveEntry(JSON.parse(JSON.stringify(n)));
+    toast('In Bibliothek gespeichert ✓');
+  });
+  $('#btnNpcCopy').addEventListener('click', () => { navigator.clipboard.writeText(npcAsText(n)); toast('In Zwischenablage kopiert ✓'); });
+  $('#btnNpcFoundry').addEventListener('click', async () => {
+    const r = await window.api.saveText({
+      defaultName: 'fvtt-' + Foundry.slug(n.name) + '.json',
+      content: JSON.stringify(Foundry.npcToFoundry(n), null, 2)
+    });
+    if (r.ok) toast('Foundry-Export gespeichert ✓');
+  });
+
+  const goto = $('#npcGotoSettings');
+  if (goto) goto.addEventListener('click', (e) => { e.preventDefault(); switchView('einstellungen'); });
+
+  const aiBtn = $('#npcAiGen');
+  if (aiBtn) aiBtn.addEventListener('click', async () => {
+    const provider = $('#npcAiProvider').value;
+    SETTINGS.aiProvider = provider;
+    window.api.saveSettings(SETTINGS);
+    aiBtn.disabled = true;
+    $('#npcAiStatus').textContent = '✍️ Die KI schreibt…';
+    const prompt = `Schreibe eine kurze Hintergrundgeschichte (4-8 Sätze) für diesen NPC:
+Name: ${n.name}, ${n.rasseLabel}, ${n.geschlecht === 'f' ? 'weiblich' : 'männlich'}
+Rolle: ${n.rolle}
+Aussehen: ${n.aussehen}
+Wesen: ${n.wesen}, ${n.eigenheit}
+Motivation: ${n.motivation}
+Hängt an: ${n.bindung}
+Makel: ${n.makel}
+Geheimnis: ${n.geheimnis}
+Verbinde diese Elemente zu einer stimmigen Lebensgeschichte und ende mit einem konkreten Abenteuer-Aufhänger für die Spielergruppe.`;
+    const r = await window.api.aiGenerate({ provider, type: 'npc', prompt });
+    aiBtn.disabled = false;
+    if (!r.ok) { $('#npcAiStatus').textContent = '⚠️ ' + r.error; return; }
+    n.hintergrund = r.result.hintergrund || r.result.text || '';
+    renderNpcCard();
+    toast('Hintergrundgeschichte erstellt ✓');
+  });
+}
+
+function npcAsText(n) {
+  return `${n.name} – ${n.rolle} (${n.rasseLabel}, ${n.geschlecht === 'f' ? 'weiblich' : 'männlich'})
+Einstellung: ${n.einstellung.label} – ${n.einstellung.desc}
+Aussehen: ${n.aussehen}
+Wesen: ${n.wesen} · ${n.eigenheit}
+Stimme: ${n.stimme}
+Motivation: ${n.motivation}
+Bindung: Hängt an ${n.bindung}
+Makel: ${n.makel}
+Geheimnis: ${n.geheimnis}${n.hintergrund ? '\n\nHintergrund:\n' + n.hintergrund : ''}${n.notizen ? '\n\nNotizen: ' + n.notizen : ''}`;
+}
+
+// ================= Loot =================
+const MUENZ_LABEL = { km: 'Kupfer', sm: 'Silber', gm: 'Gold', pm: 'Platin' };
+
+function renderLootView() {
+  const lt = DATA.tables.loot;
+  main().innerHTML = `
+    <h1>Loot-Generator</h1>
+    <div class="subtitle">Schatzhorte nach den offiziellen Horttabellen – Münzen, Wertsachen und magische Gegenstände.</div>
+    <div class="controls">
+      <div class="field"><label>Herausforderung</label><select id="lootStufe">${lt.stufen.map((s) => `<option value="${s.id}">${esc(s.label)}</option>`).join('')}</select></div>
+      <div class="field"><label>Art</label><select id="lootArt">
+        <option value="hort">Schatzhort (Bosse, Verstecke)</option>
+        <option value="einzeln">Einzelbeute (Taschen einzelner Gegner)</option>
+      </select></div>
+      <button class="btn big" id="btnLootGen">🎲 Beute erwürfeln</button>
+    </div>
+    <div id="lootResult"></div>
+    <div id="modal"></div>`;
+
+  $('#btnLootGen').addEventListener('click', () => {
+    currentLoot = Generator.generateLoot(DATA, { stufe: $('#lootStufe').value, art: $('#lootArt').value });
+    renderLootCard();
+  });
+  if (currentLoot) renderLootCard();
+}
+
+function renderLootCard() {
+  const l = currentLoot;
+  const box = $('#lootResult');
+  if (!box || !l) return;
+
+  const muenzRows = Object.entries(l.muenzen).filter(([, v]) => v > 0)
+    .map(([k, v]) => `<tr><td><span class="itemname">${MUENZ_LABEL[k]}münzen</span></td><td class="price">${v.toLocaleString('de-DE')} ${k.toUpperCase()}</td></tr>`).join('');
+  const wertRows = l.wertsachen.map((w) =>
+    `<tr><td><span class="itemname">${esc(w.name)}</span><div class="itemdesc">${esc(w.art)}</div></td><td class="price">${w.anzahl}x ${w.wert.toLocaleString('de-DE')} GM</td></tr>`).join('');
+  const magieRows = l.magie.map((m, i) =>
+    `<tr><td><span class="itemname magic loot-magic" data-i="${i}">${esc(m.name)}</span><div class="itemdesc">${esc(m.src)}</div></td><td><span class="badge magic">${esc(m.rarity)}</span></td></tr>`).join('');
+
+  box.innerHTML = `
+    <div class="merchant-card">
+      <div class="merchant-head">
+        <div class="icon">💰</div>
+        <div>
+          <div class="shopname">${esc(l.name)}</div>
+          <div class="meta">Gesamtwert (ohne magische Items): ca. <b>${l.gesamtGold.toLocaleString('de-DE')} GM</b></div>
+        </div>
+      </div>
+      <div class="inventory">
+        <h2>Münzen</h2>
+        <table><tbody>${muenzRows || '<tr><td class="dim">Keine</td></tr>'}</tbody></table>
+        ${l.wertsachen.length ? `<h2 style="margin-top:14px">Wertsachen</h2><table><tbody>${wertRows}</tbody></table>` : ''}
+        ${l.magie.length ? `<h2 style="margin-top:14px">Magische Gegenstände</h2><table><tbody>${magieRows}</tbody></table>` : ''}
+      </div>
+      <div class="merchant-foot">
+        <textarea id="lootNotes" placeholder="Eigene Notizen (Fundort, Fluch, Besitzer…)">${esc(l.notizen)}</textarea>
+        <div class="foot-btns">
+          <button class="btn" id="btnLootSave">💾 In Bibliothek speichern</button>
+          <button class="btn ghost" id="btnLootCopy">📋 Als Text kopieren</button>
+          ${l.magie.length ? '<button class="btn ghost" id="btnLootFoundry">🎲 Foundry-Export (Items)</button>' : ''}
+        </div>
+      </div>
+    </div>`;
+
+  $$('.loot-magic', box).forEach((el) =>
+    el.addEventListener('click', () => {
+      const full = DATA.magicItems.find((m) => m.index === l.magie[+el.dataset.i].index);
+      if (full) showItemDetail(full);
+    })
+  );
+  $('#lootNotes').addEventListener('input', (ev) => { l.notizen = ev.target.value; });
+  $('#btnLootSave').addEventListener('click', async () => {
+    STORE = await window.api.saveEntry(JSON.parse(JSON.stringify(l)));
+    toast('In Bibliothek gespeichert ✓');
+  });
+  $('#btnLootCopy').addEventListener('click', () => {
+    const txt = l.name + ' (Gesamtwert ca. ' + l.gesamtGold + ' GM)\n' +
+      'Münzen: ' + Object.entries(l.muenzen).filter(([, v]) => v > 0).map(([k, v]) => v + ' ' + k.toUpperCase()).join(', ') + '\n' +
+      (l.wertsachen.length ? 'Wertsachen:\n' + l.wertsachen.map((w) => '  ' + w.anzahl + 'x ' + w.name + ' (je ' + w.wert + ' GM)\n').join('') : '') +
+      (l.magie.length ? 'Magische Gegenstände:\n' + l.magie.map((m) => '  ' + m.name + ' (' + m.rarity + ')\n').join('') : '') +
+      (l.notizen ? 'Notizen: ' + l.notizen : '');
+    navigator.clipboard.writeText(txt);
+    toast('In Zwischenablage kopiert ✓');
+  });
+  const fBtn = $('#btnLootFoundry');
+  if (fBtn) fBtn.addEventListener('click', async () => {
+    const files = l.magie.map((m) => {
+      const full = DATA.magicItems.find((x) => x.index === m.index) || m;
+      return { name: 'fvtt-' + Foundry.slug(m.name) + '.json', content: JSON.stringify(Foundry.itemToFoundry(full), null, 2) };
+    });
+    const r = await window.api.saveMany({ files });
+    if (r.ok) toast(r.count + ' Foundry-Dateien gespeichert ✓');
+  });
+}
+
+// ================= Globale Suche =================
+function renderGlobalSearch(q = '') {
+  const ql = q.toLowerCase().trim();
+  let html = '';
+  if (ql.length >= 2) {
+    const mon = allMonsters().filter((m) => m.name.toLowerCase().includes(ql)).slice(0, 15);
+    const items = allMagicItems().filter((i) => i.name.toLowerCase().includes(ql)).slice(0, 15);
+    const spells = DATA.spells.filter((s) => s.name.toLowerCase().includes(ql)).slice(0, 15);
+    const eintraege = STORE.entries.filter((e) => JSON.stringify(e).toLowerCase().includes(ql)).slice(0, 15);
+    const notizen = STORE.notes.filter((n) => (n.titel + ' ' + n.text).toLowerCase().includes(ql)).slice(0, 10);
+
+    const sect = (titel, rows) => rows.length ? `<h2 style="margin-top:16px">${titel} (${rows.length})</h2><div class="lib-grid">${rows.join('')}</div>` : '';
+    html =
+      sect('🐲 Monster', mon.map((m, i) => `<div class="lib-card gs-mon" data-i="${i}"><div class="t">${esc(m.name)}</div><div class="s">HG ${esc(String(m.cr))} · ${esc(m.type || '')} · ${esc(m.src)}</div></div>`)) +
+      sect('✨ Magische Items', items.map((it, i) => `<div class="lib-card gs-item" data-i="${i}"><div class="t magic">${esc(it.name)}</div><div class="s">${esc([it.rarity, it.src].filter(Boolean).join(' · '))}</div></div>`)) +
+      sect('📜 Zauber', spells.map((sp, i) => `<div class="lib-card gs-spell" data-i="${i}"><div class="t magic">${esc(sp.name)}</div><div class="s">${esc(GRAD_LABEL(sp.level))} · ${esc(sp.school || '')} · ${esc(sp.src)}</div></div>`)) +
+      sect('📜 Bibliothek', eintraege.map((e, i) => `<div class="lib-card gs-lib" data-i="${i}"><div class="t">${esc(e.name)}</div><div class="s">${esc(e.type)}</div></div>`)) +
+      sect('✒️ Notizen', notizen.map((n) => `<div class="lib-card gs-note"><div class="t">${esc(n.titel)}</div><div class="s">${esc(n.text.slice(0, 80))}</div></div>`));
+    if (!html) html = '<div class="empty">Nichts gefunden.</div>';
+
+    // Nach dem Rendern Handler setzen (unten)
+    renderGlobalSearch._mon = mon; renderGlobalSearch._items = items; renderGlobalSearch._lib = eintraege; renderGlobalSearch._spells = spells;
+  }
+
+  main().innerHTML = `
+    <h1>Globale Suche</h1>
+    <div class="subtitle">Durchsucht Monster, magische Items, deine Bibliothek und Notizen.</div>
+    <div class="controls"><div class="field" style="flex:1"><label>Suchbegriff</label>
+      <input type="text" id="gsInput" value="${esc(q)}" placeholder="🔍 Mindestens 2 Zeichen…" /></div></div>
+    <div id="gsResults">${html}</div>
+    <div id="modal"></div>`;
+
+  const inp = $('#gsInput');
+  inp.addEventListener('input', () => renderGlobalSearch(inp.value));
+  inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+
+  $$('.gs-mon').forEach((c) => c.addEventListener('click', () => showStatblock(renderGlobalSearch._mon[+c.dataset.i])));
+  $$('.gs-item').forEach((c) => c.addEventListener('click', () => showItemDetail(renderGlobalSearch._items[+c.dataset.i])));
+  $$('.gs-spell').forEach((c) => c.addEventListener('click', () => showSpellDetail(renderGlobalSearch._spells[+c.dataset.i])));
+  $$('.gs-lib').forEach((c) => c.addEventListener('click', () => {
+    const e = renderGlobalSearch._lib[+c.dataset.i];
+    if (e.type === 'encounter') { currentEncounter = JSON.parse(JSON.stringify(e)); switchView('encounter'); }
+    else if (e.type === 'stadt') { currentCity = JSON.parse(JSON.stringify(e)); switchView('stadt'); }
+    else if (e.type === 'loot') { currentLoot = JSON.parse(JSON.stringify(e)); switchView('loot'); }
+    else if (e.type === 'npc') { currentNpc = JSON.parse(JSON.stringify(e)); switchView('npc'); }
+    else { currentMerchant = JSON.parse(JSON.stringify(e)); switchView('haendler'); }
+  }));
+  $$('.gs-note').forEach((c) => c.addEventListener('click', () => switchView('notizen')));
+}
+
 // ================= Bibliothek =================
+let libCampaignFilter = '';
+
 function renderLibrary(filterText = '') {
   const entries = STORE.entries.filter((e) => {
+    if (libCampaignFilter === 'keine' && e.kampagne) return false;
+    if (libCampaignFilter && libCampaignFilter !== 'keine' && e.kampagne !== libCampaignFilter) return false;
     const q = filterText.toLowerCase();
     if (!q) return true;
     const inMonster = e.type === 'encounter' && e.monster.some((g) => g.name.toLowerCase().includes(q));
@@ -488,17 +790,27 @@ function renderLibrary(filterText = '') {
     } else if (e.type === 'stadt') {
       icon = '🏰'; title = e.name;
       sub = e.groesseLabel + ' · ' + e.einwohner.toLocaleString('de-DE') + ' EW · ' + e.laeden.length + ' Läden, ' + e.tavernen.length + ' Tavernen';
+    } else if (e.type === 'loot') {
+      icon = '💰'; title = e.name;
+      sub = 'ca. ' + e.gesamtGold.toLocaleString('de-DE') + ' GM' + (e.magie.length ? ' + ' + e.magie.length + ' magische Items' : '');
+    } else if (e.type === 'npc') {
+      icon = '🧑'; title = e.name;
+      sub = e.rolle + ' · ' + e.rasseLabel + ' · ' + e.einstellung.label;
     } else {
       icon = e.ladenIcon || '📦'; title = e.ladenName || e.name;
       sub = [e.name, e.rasseLabel, e.ladenLabel || e.type].filter(Boolean).join(' · ');
     }
+    const campSelect = `<select class="camp-assign" data-id="${e.id}" title="Kampagne zuordnen">
+      <option value="">— keine Kampagne —</option>
+      ${STORE.campaigns.map((c) => `<option value="${c.id}" ${e.kampagne === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+    </select>`;
     return `
     <div class="lib-card" data-id="${e.id}">
       <button class="del" data-id="${e.id}" title="Löschen">🗑</button>
       <div class="t">${icon} ${esc(title)}</div>
       <div class="s">${esc(sub)}</div>
       ${e.notizen ? `<div class="s">📝 ${esc(e.notizen.slice(0, 60))}${e.notizen.length > 60 ? '…' : ''}</div>` : ''}
-      <div class="d">Erstellt: ${fmtDate(e.createdAt)}</div>
+      <div class="d">Erstellt: ${fmtDate(e.createdAt)} · ${campSelect}</div>
     </div>`;
   }).join('');
 
@@ -507,6 +819,13 @@ function renderLibrary(filterText = '') {
     <div class="subtitle">Alle gespeicherten Kreationen – anklicken zum Öffnen und Weiterbearbeiten.</div>
     <div class="lib-controls">
       <input type="text" id="libSearch" placeholder="🔍 Suchen nach Name, Laden…" value="${esc(filterText)}" />
+      <select id="libCampaign">
+        <option value="">Alle Kampagnen</option>
+        <option value="keine" ${libCampaignFilter === 'keine' ? 'selected' : ''}>Ohne Kampagne</option>
+        ${STORE.campaigns.map((c) => `<option value="${c.id}" ${libCampaignFilter === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+      </select>
+      <button class="btn ghost" id="btnNewCampaign">+ Kampagne</button>
+      ${libCampaignFilter && libCampaignFilter !== 'keine' ? '<button class="btn danger" id="btnDelCampaign" title="Kampagne löschen (Einträge bleiben)">🗑 Kampagne</button>' : ''}
     </div>
     ${entries.length ? `<div class="lib-grid">${cards}</div>` : '<div class="empty">Noch nichts gespeichert. Erwürfle einen Händler und speichere ihn!</div>'}`;
 
@@ -526,6 +845,12 @@ function renderLibrary(filterText = '') {
       } else if (entry.type === 'stadt') {
         currentCity = JSON.parse(JSON.stringify(entry));
         switchView('stadt');
+      } else if (entry.type === 'loot') {
+        currentLoot = JSON.parse(JSON.stringify(entry));
+        switchView('loot');
+      } else if (entry.type === 'npc') {
+        currentNpc = JSON.parse(JSON.stringify(entry));
+        switchView('npc');
       } else {
         currentMerchant = JSON.parse(JSON.stringify(entry));
         switchView('haendler');
@@ -540,6 +865,35 @@ function renderLibrary(filterText = '') {
       toast('Eintrag gelöscht');
     })
   );
+
+  // Kampagnen
+  $('#libCampaign').addEventListener('change', (e) => { libCampaignFilter = e.target.value; renderLibrary($('#libSearch').value); });
+  $('#btnNewCampaign').addEventListener('click', async () => {
+    const name = prompt('Name der neuen Kampagne:');
+    if (!name || !name.trim()) return;
+    const c = { id: 'c_' + Date.now(), name: name.trim() };
+    STORE = await window.api.saveCampaign(c);
+    renderLibrary($('#libSearch').value);
+    toast('Kampagne „' + c.name + '" angelegt – ordne jetzt Einträge über das Auswahlfeld an jeder Karte zu');
+  });
+  const delCamp = $('#btnDelCampaign');
+  if (delCamp) delCamp.addEventListener('click', async () => {
+    STORE = await window.api.deleteCampaign(libCampaignFilter);
+    libCampaignFilter = '';
+    renderLibrary($('#libSearch').value);
+    toast('Kampagne gelöscht (Einträge bleiben erhalten)');
+  });
+  $$('.camp-assign').forEach((sel) => {
+    sel.addEventListener('click', (ev) => ev.stopPropagation());
+    sel.addEventListener('change', async (ev) => {
+      ev.stopPropagation();
+      const entry = STORE.entries.find((e) => e.id === sel.dataset.id);
+      if (!entry) return;
+      entry.kampagne = sel.value || null;
+      STORE = await window.api.saveEntry(entry);
+      toast('Zugeordnet ✓');
+    });
+  });
 }
 
 // ================= Kompendium =================
@@ -554,52 +908,91 @@ function allMagicItems() {
   );
 }
 
+const GRAD_LABEL = (l) => (l === 0 ? 'Zaubertrick' : 'Grad ' + l);
+
 function renderCompendium() {
-  const isMon = compState.tab === 'monster';
-  const list = isMon ? allMonsters() : allMagicItems();
+  const tab = compState.tab;
+  const isMon = tab === 'monster';
+  const isSpell = tab === 'spells';
+  const list = isMon ? allMonsters() : isSpell ? DATA.spells : allMagicItems();
   const sources = [...new Set(list.map((x) => x.src))];
 
   const q = compState.q.toLowerCase();
   let hits = list.filter(
     (x) =>
       (!q || x.name.toLowerCase().includes(q) || (isMon && (x.type || '').toLowerCase().includes(q))) &&
-      (!compState.src || x.src === compState.src)
+      (!compState.src || x.src === compState.src) &&
+      (!isSpell || compState.grad === '' || compState.grad === undefined || x.level === +compState.grad) &&
+      (!isSpell || !compState.schule || x.school === compState.schule)
   );
   const total = hits.length;
   hits = hits.slice(0, 200);
 
   const rows = hits.map((x, i) => isMon
     ? `<tr class="comp-row" data-i="${i}"><td><span class="itemname">${esc(x.name)}</span></td><td>${esc(x.cr ?? '')}</td><td>${esc(x.type || '')}</td><td>${esc(x.size || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
-    : `<tr class="comp-row" data-i="${i}"><td><span class="itemname magic">${esc(x.name)}</span></td><td>${esc(x.rarity || '')}</td><td>${esc(x.cat || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
+    : isSpell
+      ? `<tr class="comp-row" data-i="${i}"><td><span class="itemname magic">${esc(x.name)}</span>${x.conc ? ' <span class="badge">K</span>' : ''}${x.ritual ? ' <span class="badge">R</span>' : ''}</td><td>${esc(GRAD_LABEL(x.level))}</td><td>${esc(x.school || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
+      : `<tr class="comp-row" data-i="${i}"><td><span class="itemname magic">${esc(x.name)}</span></td><td>${esc(x.rarity || '')}</td><td>${esc(x.cat || '')}</td><td class="dim">${esc(x.src)}</td></tr>`
   ).join('');
+
+  const schulen = isSpell ? [...new Set(DATA.spells.map((s) => s.school).filter(Boolean))].sort() : [];
 
   main().innerHTML = `
     <h1>Kompendium</h1>
-    <div class="subtitle">${allMonsters().length.toLocaleString('de-DE')} Monster und ${allMagicItems().length.toLocaleString('de-DE')} magische Gegenstände – komplett offline.</div>
+    <div class="subtitle">${allMonsters().length.toLocaleString('de-DE')} Monster, ${allMagicItems().length.toLocaleString('de-DE')} magische Gegenstände und ${DATA.spells.length.toLocaleString('de-DE')} Zauber – komplett offline.</div>
     <div class="controls">
       <div class="tabs">
         <button class="btn ${isMon ? '' : 'ghost'}" id="tabMon">🐲 Monster</button>
-        <button class="btn ${isMon ? 'ghost' : ''}" id="tabItems">✨ Magische Items</button>
+        <button class="btn ${tab === 'items' ? '' : 'ghost'}" id="tabItems">✨ Items</button>
+        <button class="btn ${isSpell ? '' : 'ghost'}" id="tabSpells">📜 Zauber</button>
       </div>
       <div class="field" style="flex:1"><label>Suche</label><input type="text" id="compSearch" value="${esc(compState.q)}" placeholder="🔍 Name${isMon ? ' oder Typ' : ''}…" /></div>
+      ${isSpell ? `
+      <div class="field"><label>Grad</label><select id="compGrad"><option value="">Alle</option>${[0,1,2,3,4,5,6,7,8,9].map((g) => `<option value="${g}" ${compState.grad === String(g) ? 'selected' : ''}>${GRAD_LABEL(g)}</option>`).join('')}</select></div>
+      <div class="field"><label>Schule</label><select id="compSchule"><option value="">Alle</option>${schulen.map((s) => `<option ${s === compState.schule ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>` : ''}
       <div class="field"><label>Quelle</label><select id="compSrc"><option value="">Alle</option>${sources.map((s) => `<option ${s === compState.src ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></div>
     </div>
     <div class="comp-count">${total.toLocaleString('de-DE')} Treffer${total > 200 ? ' (erste 200 angezeigt – Suche verfeinern)' : ''}</div>
     <table class="comp-table">
-      <thead>${isMon ? '<tr><th>Name</th><th>HG</th><th>Typ</th><th>Größe</th><th>Quelle</th></tr>' : '<tr><th>Name</th><th>Seltenheit</th><th>Kategorie</th><th>Quelle</th></tr>'}</thead>
+      <thead>${isMon ? '<tr><th>Name</th><th>HG</th><th>Typ</th><th>Größe</th><th>Quelle</th></tr>' : isSpell ? '<tr><th>Name</th><th>Grad</th><th>Schule</th><th>Quelle</th></tr>' : '<tr><th>Name</th><th>Seltenheit</th><th>Kategorie</th><th>Quelle</th></tr>'}</thead>
       <tbody>${rows || '<tr><td colspan="5" class="empty">Keine Treffer.</td></tr>'}</tbody>
     </table>
     <div id="modal"></div>`;
 
   $('#tabMon').addEventListener('click', () => { compState = { tab: 'monster', q: '', src: '' }; renderCompendium(); });
   $('#tabItems').addEventListener('click', () => { compState = { tab: 'items', q: '', src: '' }; renderCompendium(); });
+  $('#tabSpells').addEventListener('click', () => { compState = { tab: 'spells', q: '', src: '', grad: '', schule: '' }; renderCompendium(); });
   const s = $('#compSearch');
   s.addEventListener('input', () => { compState.q = s.value; renderCompendium(); });
   s.focus(); s.setSelectionRange(s.value.length, s.value.length);
   $('#compSrc').addEventListener('change', (e) => { compState.src = e.target.value; renderCompendium(); });
+  if (isSpell) {
+    $('#compGrad').addEventListener('change', (e) => { compState.grad = e.target.value; renderCompendium(); });
+    $('#compSchule').addEventListener('change', (e) => { compState.schule = e.target.value; renderCompendium(); });
+  }
   $$('.comp-row').forEach((r) =>
-    r.addEventListener('click', () => (isMon ? showStatblock(hits[+r.dataset.i]) : showItemDetail(hits[+r.dataset.i])))
+    r.addEventListener('click', () => (isMon ? showStatblock(hits[+r.dataset.i]) : isSpell ? showSpellDetail(hits[+r.dataset.i]) : showItemDetail(hits[+r.dataset.i])))
   );
+}
+
+function showSpellDetail(sp) {
+  $('#modal').innerHTML = `
+    <div class="modal-bg">
+      <div class="statblock">
+        <button class="modal-close">✕</button>
+        <h2 class="magic">${esc(sp.name)}</h2>
+        <div class="sb-meta">${esc(GRAD_LABEL(sp.level))} · ${esc(sp.school || '')}${sp.ritual ? ' (Ritual)' : ''} · <span class="dim">${esc(sp.src)}</span></div>
+        <hr />
+        <div class="sb-line"><b>Zeitaufwand</b> ${esc(sp.castTime || '–')}</div>
+        <div class="sb-line"><b>Reichweite</b> ${esc(sp.range || '–')}</div>
+        <div class="sb-line"><b>Komponenten</b> ${esc(sp.components || '–')}</div>
+        <div class="sb-line"><b>Dauer</b> ${esc((sp.conc ? 'Konzentration, ' : '') + (sp.duration || '–'))}</div>
+        ${sp.classes ? `<div class="sb-line"><b>Klassen</b> ${esc(sp.classes)}</div>` : ''}
+        <div class="sb-sect"><p style="white-space:pre-wrap">${esc(sp.desc)}</p></div>
+      </div>
+    </div>`;
+  $('.modal-close').addEventListener('click', () => ($('#modal').innerHTML = ''));
+  $('.modal-bg').addEventListener('click', (e) => { if (e.target.classList.contains('modal-bg')) $('#modal').innerHTML = ''; });
 }
 
 const mod = (v) => { const m = Math.floor((v - 10) / 2); return (m >= 0 ? '+' : '') + m; };
@@ -909,6 +1302,15 @@ async function renderSettings() {
     </div>
 
     <div class="note-editor">
+      <h2>💾 Backup</h2>
+      <div class="settings-hint">Sichert Bibliothek, Kampagnen, Homebrew und Einstellungen in einer Datei – z. B. für einen PC-Wechsel oder zur Sicherheit.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" id="btnBackup">📤 Backup erstellen</button>
+        <button class="btn ghost" id="btnRestore">📥 Backup wiederherstellen</button>
+      </div>
+    </div>
+
+    <div class="note-editor">
       <h2>🔄 Updates</h2>
       <div class="settings-hint">Die App prüft bei jedem Start automatisch auf neue Versionen. Hier kannst du manuell prüfen:</div>
       <div><button class="btn ghost" id="btnCheckUpdate">Nach Updates suchen</button> <span id="updateStatus" class="dim"></span></div>
@@ -924,6 +1326,20 @@ async function renderSettings() {
     toast('Einstellungen gespeichert ✓');
   });
 
+  $('#btnBackup').addEventListener('click', async () => {
+    const r = await window.api.createBackup();
+    if (r.ok) toast('Backup gespeichert ✓');
+  });
+  $('#btnRestore').addEventListener('click', async () => {
+    const r = await window.api.restoreBackup();
+    if (r.ok) {
+      STORE = await window.api.getAll();
+      DATA.homebrew = await window.api.getHomebrew();
+      SETTINGS = await window.api.getSettings();
+      toast('Backup wiederhergestellt ✓');
+      renderSettings();
+    } else if (r.error) toast(r.error);
+  });
   $('#btnCheckUpdate').addEventListener('click', async () => {
     $('#updateStatus').textContent = 'Prüfe…';
     const r = await window.api.checkUpdate();

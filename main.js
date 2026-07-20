@@ -13,9 +13,11 @@ const storePath = () => path.join(app.getPath('userData'), 'bibliothek.json');
 
 function loadStore() {
   try {
-    return JSON.parse(fs.readFileSync(storePath(), 'utf8'));
+    const s = JSON.parse(fs.readFileSync(storePath(), 'utf8'));
+    if (!s.campaigns) s.campaigns = [];
+    return s;
   } catch (e) {
-    return { entries: [], notes: [] };
+    return { entries: [], notes: [], campaigns: [] };
   }
 }
 
@@ -58,6 +60,23 @@ ipcMain.handle('store:deleteNote', (ev, id) => {
   return store;
 });
 
+ipcMain.handle('store:saveCampaign', (ev, campaign) => {
+  const store = loadStore();
+  const idx = store.campaigns.findIndex((c) => c.id === campaign.id);
+  if (idx >= 0) store.campaigns[idx] = campaign;
+  else store.campaigns.push(campaign);
+  saveStore(store);
+  return store;
+});
+
+ipcMain.handle('store:deleteCampaign', (ev, id) => {
+  const store = loadStore();
+  store.campaigns = store.campaigns.filter((c) => c.id !== id);
+  store.entries.forEach((e) => { if (e.kampagne === id) e.kampagne = null; });
+  saveStore(store);
+  return store;
+});
+
 ipcMain.handle('app:version', () => app.getVersion());
 
 // ---------- Einstellungen (API-Schlüssel etc., nur lokal) ----------
@@ -75,6 +94,54 @@ ipcMain.handle('settings:get', () => loadSettings());
 ipcMain.handle('settings:save', (ev, s) => {
   fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2), 'utf8');
   return s;
+});
+
+// ---------- Backup & Wiederherstellung ----------
+ipcMain.handle('backup:create', async () => {
+  const datum = new Date().toISOString().slice(0, 10);
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Backup speichern',
+    defaultPath: 'dnd-toolkit-backup-' + datum + '.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+  if (!filePath) return { ok: false };
+  const backup = {
+    format: 'dnd-toolkit-backup',
+    version: app.getVersion(),
+    erstellt: new Date().toISOString(),
+    bibliothek: loadStore(),
+    homebrew: loadHomebrew(),
+    einstellungen: loadSettings()
+  };
+  fs.writeFileSync(filePath, JSON.stringify(backup, null, 2), 'utf8');
+  return { ok: true };
+});
+
+ipcMain.handle('backup:restore', async () => {
+  const { filePaths } = await dialog.showOpenDialog({
+    title: 'Backup wiederherstellen',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile']
+  });
+  if (!filePaths || !filePaths.length) return { ok: false };
+  try {
+    const b = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
+    if (b.format !== 'dnd-toolkit-backup') return { ok: false, error: 'Das ist keine DnD-Toolkit-Backup-Datei.' };
+    const { response } = await dialog.showMessageBox({
+      type: 'warning',
+      buttons: ['Abbrechen', 'Wiederherstellen'],
+      defaultId: 1,
+      message: 'Backup vom ' + new Date(b.erstellt).toLocaleString('de-DE') + ' wiederherstellen?',
+      detail: 'Ersetzt Bibliothek (' + (b.bibliothek?.entries?.length || 0) + ' Einträge), Homebrew und Einstellungen. Der aktuelle Stand wird überschrieben.'
+    });
+    if (response !== 1) return { ok: false };
+    if (b.bibliothek) saveStore(b.bibliothek);
+    if (b.homebrew) saveHomebrew(b.homebrew);
+    if (b.einstellungen) fs.writeFileSync(settingsPath(), JSON.stringify(b.einstellungen, null, 2), 'utf8');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: 'Backup konnte nicht gelesen werden: ' + e.message };
+  }
 });
 
 // ---------- Manueller Update-Check ----------
@@ -214,6 +281,9 @@ const AI_SYSTEM = {
   item: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers einen magischen Gegenstand für D&D 5e mit vollständigen Spielwerten.
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer rarity):
 {"name": "Name des Gegenstands", "itemTyp": "Waffe|Rüstung|Schild|Trank|Schriftrolle|Ring|Stab|Zauberstab|Munition|Wundersamer Gegenstand", "rarity": "Common|Uncommon|Rare|Very Rare|Legendary", "preis": "Zahl gp", "schaden": "Schadenswürfel und -typ bei Waffen, z.B. '1d8 Hieb + 1d6 Feuer', sonst null", "bonus": "magischer Bonus wie '+1', sonst null", "rk": "Rüstungsklasse als Zahl nur bei Rüstungen/Schilden, sonst null", "eigenschaften": "besondere Regeln mit konkreten Werten, Rettungswürfen (SG), Aufladungen usw.", "desc": "stimmungsvolle Beschreibung, 2-4 Sätze"}`,
+  npc: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Schreibe eine stimmungsvolle Hintergrundgeschichte für einen NPC auf Deutsch.
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format:
+{"hintergrund": "Die Hintergrundgeschichte als Fließtext, 4-8 Sätze, endend mit einem konkreten Abenteuer-Aufhänger für die Spielergruppe."}`,
   monster: `Du bist ein kreativer D&D-5e-Spielleiter-Assistent. Erzeuge aus der Beschreibung des Nutzers ein ausbalanciertes Monster für D&D 5e.
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in exakt diesem Format (Feldwerte auf Deutsch, außer size):
 {"name": "Name", "cr": "Herausforderungsgrad z.B. 1/2 oder 5", "type": "Kreaturentyp", "size": "Tiny|Small|Medium|Large|Huge|Gargantuan", "ac": "Rüstungsklasse", "hp": "Trefferpunkte", "speed": "z.B. 30 ft.", "text": "Fähigkeiten und Aktionen als Statblock-Text mit Angriffswerten"}`
@@ -229,7 +299,8 @@ ipcMain.handle('ai:generate', async (ev, { provider, type, prompt }) => {
   try {
     const raw = await aiRequest(provider, key, model, AI_SYSTEM[type], prompt);
     const obj = parseAiJson(raw);
-    if (!obj.name) throw new Error('Antwort enthielt keinen Namen.');
+    if (type !== 'npc' && !obj.name) throw new Error('Antwort enthielt keinen Namen.');
+    if (type === 'npc' && !obj.hintergrund && !obj.text) throw new Error('Antwort enthielt keine Geschichte.');
     return { ok: true, result: obj };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -325,6 +396,7 @@ ipcMain.handle('data:load', () => {
     equipment: read('equipment.json'),
     magicItems: read('magic-items.json'),
     monsters: read('monsters.json'),
+    spells: read('spells.json'),
     names: read('names.json'),
     tables: read('tables.json')
   };

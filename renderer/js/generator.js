@@ -440,10 +440,125 @@
     geruechte: (data, s) => { s.geruechte = data.tables.stadt.geruechte.slice().sort(() => Math.random() - 0.5).slice(0, 3); return s; }
   };
 
+  // ============================================================
+  // Loot-Generator (nach DMG-Schatzhort-System)
+  // ============================================================
+  function wuerfel(n, seiten, mult) {
+    let s = 0;
+    for (let i = 0; i < n; i++) s += rndInt(1, seiten);
+    return s * (mult || 1);
+  }
+
+  // opts: { stufe ('t1'..'t4'), art ('hort'|'einzeln') }
+  function generateLoot(data, opts = {}) {
+    const lt = data.tables.loot;
+    const stufe = lt.stufen.find((s) => s.id === (opts.stufe || 't1')) || lt.stufen[0];
+    const einzeln = opts.art === 'einzeln';
+
+    // Münzen (Einzelbeute: ein Zehntel des Horts)
+    const muenzen = {};
+    for (const [einheit, [n, seiten, mult]] of Object.entries(stufe.muenzen)) {
+      muenzen[einheit] = wuerfel(n, seiten, einzeln ? Math.max(1, mult / 10) : mult);
+    }
+
+    let wertsachen = [];
+    let magie = [];
+    if (!einzeln) {
+      // Edelsteine / Kunstgegenstände
+      const anz = rndInt(stufe.wertAnzahl[0], stufe.wertAnzahl[1]);
+      const wertStufe = rnd(stufe.wertsachen);
+      const istGem = lt.edelsteine[wertStufe] !== undefined && (lt.kunst[wertStufe] === undefined || chance(0.6));
+      const quelle = istGem ? lt.edelsteine[wertStufe] : (lt.kunst[wertStufe] || lt.edelsteine[wertStufe]);
+      const gezaehlt = {};
+      for (let i = 0; i < anz; i++) {
+        const w = rnd(quelle);
+        gezaehlt[w] = (gezaehlt[w] || 0) + 1;
+      }
+      wertsachen = Object.entries(gezaehlt).map(([name, count]) => ({
+        name, anzahl: count, wert: parseInt(wertStufe), art: istGem ? 'Edelstein' : 'Kunstgegenstand'
+      }));
+
+      // Magische Gegenstände
+      if (chance(stufe.magieChance)) {
+        const nM = rndInt(stufe.magieAnzahl[0], stufe.magieAnzahl[1]);
+        const pool = data.magicItems.filter((m) => stufe.raritaeten.includes(m.rarity) && !m.variant);
+        const seen = new Set();
+        for (let i = 0; i < nM && pool.length; i++) {
+          const it = rnd(pool);
+          if (seen.has(it.index)) continue;
+          seen.add(it.index);
+          magie.push({ index: it.index, name: it.name, rarity: it.rarity, src: it.src });
+        }
+      }
+    }
+
+    const gesamtGold = Math.round(
+      (muenzen.km || 0) / 100 + (muenzen.sm || 0) / 10 + (muenzen.gm || 0) + (muenzen.pm || 0) * 10 +
+      wertsachen.reduce((s, w) => s + w.wert * w.anzahl, 0)
+    );
+
+    return {
+      id: 'l_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      type: 'loot',
+      createdAt: new Date().toISOString(),
+      name: (einzeln ? 'Einzelbeute ' : 'Schatzhort ') + stufe.label,
+      stufe: stufe.id, stufeLabel: stufe.label, art: einzeln ? 'einzeln' : 'hort',
+      muenzen, wertsachen, magie, gesamtGold,
+      notizen: ''
+    };
+  }
+
+  // ============================================================
+  // NPC-Generator
+  // ============================================================
+  // opts: { rasse?, geschlecht?, rolle? }
+  function generateNpc(data, opts = {}) {
+    const n = data.tables.npc;
+    const rasseId = opts.rasse || rnd(Object.keys(data.names));
+    const geschlecht = opts.geschlecht || (chance(0.5) ? 'm' : 'f');
+
+    return {
+      id: 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      type: 'npc',
+      createdAt: new Date().toISOString(),
+      name: genName(data.names, rasseId, geschlecht),
+      rasse: rasseId,
+      rasseLabel: data.names[rasseId].label,
+      geschlecht,
+      rolle: opts.rolle || rnd(n.rollen),
+      aussehen: rnd(n.aussehen),
+      wesen: rnd(data.tables.persoenlichkeit),
+      eigenheit: rnd(data.tables.eigenheit),
+      stimme: rnd(data.tables.stimme),
+      motivation: rnd(n.motivation),
+      bindung: rnd(n.bindung),
+      makel: rnd(n.makel),
+      geheimnis: rnd(n.geheimnisse),
+      einstellung: rnd(n.einstellung),
+      hintergrund: '',
+      notizen: ''
+    };
+  }
+
+  const npcReroll = {
+    name: (data, o) => { o.name = genName(data.names, o.rasse, o.geschlecht); return o; },
+    rolle: (data, o) => { o.rolle = rnd(data.tables.npc.rollen); return o; },
+    aussehen: (data, o) => { o.aussehen = rnd(data.tables.npc.aussehen); return o; },
+    wesen: (data, o) => { o.wesen = rnd(data.tables.persoenlichkeit); return o; },
+    eigenheit: (data, o) => { o.eigenheit = rnd(data.tables.eigenheit); return o; },
+    stimme: (data, o) => { o.stimme = rnd(data.tables.stimme); return o; },
+    motivation: (data, o) => { o.motivation = rnd(data.tables.npc.motivation); return o; },
+    bindung: (data, o) => { o.bindung = rnd(data.tables.npc.bindung); return o; },
+    makel: (data, o) => { o.makel = rnd(data.tables.npc.makel); return o; },
+    geheimnis: (data, o) => { o.geheimnis = rnd(data.tables.npc.geheimnisse); return o; },
+    einstellung: (data, o) => { o.einstellung = rnd(data.tables.npc.einstellung); return o; }
+  };
+
   root.Generator = {
     generateMerchant, reroll, fmtPrice, toCopper, pickInventory,
     generateEncounter, recalcEncounter, swapMonster, monsterXp,
     generateCity, cityReroll, genTaverne,
+    generateLoot, generateNpc, npcReroll,
     THRESHOLDS, DIFF_LABEL
   };
 })(typeof window !== 'undefined' ? window : module.exports);

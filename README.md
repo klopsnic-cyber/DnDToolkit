@@ -19,9 +19,17 @@ Dunkles Fantasy-Design, alle Daten offline mit dabei, aktualisiert sich selbst �
 - **🎲 Foundry-VTT-Export** *(neu in 1.4)* – Monster, magische Items, Händler (als NPC mit Warenbestand) und ganze Encounter als dnd5e-JSON exportieren. Import in Foundry: Akteur/Item anlegen → Rechtsklick → *Import Data* → Datei wählen.
 - **Item-Statuswerte** *(neu in 1.4)* – Homebrew-Items mit Typ, Schaden, Bonus, RK und Regeln; auch der KI-Assistent liefert jetzt vollständige Spielwerte.
 
+- **💰 Loot-Generator** *(neu in 1.5)* – Schatzhorte und Einzelbeute nach den offiziellen Horttabellen: Münzen, Edelsteine, Kunstgegenstände und magische Items passend zum Herausforderungsgrad, inkl. Foundry-Export.
+- **🔍 Globale Suche** *(neu in 1.5)* – ein Suchfeld über alle Monster, Items, Bibliothekseinträge und Notizen.
+- **📁 Kampagnen** *(neu in 1.5)* – Bibliothekseinträge Kampagnen zuordnen und danach filtern.
+- **💾 Backup** *(neu in 1.5)* – Bibliothek, Kampagnen, Homebrew und Einstellungen als eine Datei sichern und wiederherstellen (Einstellungen → Backup).
+
+- **🧑 NPC-Generator** *(neu in 1.6)* – Nichtspielercharaktere mit Rolle, Aussehen, Wesen, Stimme, Motivation, Bindung, Makel, Geheimnis und Einstellung zur Gruppe. Jedes Detail einzeln neu würfelbar; auf Wunsch schreibt die KI eine Hintergrundgeschichte mit Abenteuer-Aufhänger. Inkl. Foundry-Export.
+- **📜 Zauber-Kompendium** *(neu in 1.6)* – 940 Zauber (SRD 5.1 + Deep Magic, Warlock Archives) mit Grad-, Schul- und Quellenfilter und vollständigen Detailansichten.
+
 ### Roadmap
 
-- NPC-Generator, Loot-Generator, Tavernen-Generator
+- Initiative-Tracker, Tavernen-Generator, Würfel-Leiste
 
 ---
 

@@ -177,7 +177,41 @@
     };
   }
 
+  function npcToFoundry(n) {
+    let bio = '';
+    bio += p(n.rolle + ' – ' + n.rasseLabel + ', ' + (n.geschlecht === 'f' ? 'weiblich' : 'männlich'));
+    bio += p('Einstellung: ' + n.einstellung.label + ' (' + n.einstellung.desc + ')');
+    bio += p('Aussehen: ' + n.aussehen);
+    bio += p('Wesen: ' + n.wesen + ' · ' + n.eigenheit);
+    bio += p('Stimme: ' + n.stimme);
+    bio += p('Motivation: ' + n.motivation);
+    bio += p('Bindung: Hängt an ' + n.bindung);
+    bio += p('Makel: ' + n.makel);
+    bio += p('Geheimnis: ' + n.geheimnis);
+    if (n.hintergrund) bio += p('Hintergrund: ' + n.hintergrund);
+    if (n.notizen) bio += p('Notizen: ' + n.notizen);
+
+    return {
+      name: n.name,
+      type: 'npc',
+      img: 'icons/svg/mystery-man.svg',
+      system: {
+        abilities: abilityBlock({}),
+        attributes: { ac: { flat: 10, calc: 'flat' }, hp: { value: 4, max: 4, formula: '1d8' }, movement: { walk: 30, units: 'ft' } },
+        details: {
+          type: { value: 'custom', custom: 'Humanoider (' + n.rasseLabel + ')' },
+          cr: 0,
+          alignment: '',
+          biography: { value: bio }
+        },
+        traits: { size: 'med' }
+      },
+      items: [],
+      prototypeToken: { name: n.name }
+    };
+  }
+
   const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9äöüß]+/g, '-').replace(/^-|-$/g, '');
 
-  root.Foundry = { monsterToFoundry, itemToFoundry, merchantToFoundry, slug, crToNumber, parseSpeed };
+  root.Foundry = { monsterToFoundry, itemToFoundry, merchantToFoundry, npcToFoundry, slug, crToNumber, parseSpeed };
 })(typeof window !== 'undefined' ? window : module.exports);

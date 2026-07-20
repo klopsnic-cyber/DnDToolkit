@@ -1,7 +1,7 @@
 {
   "name": "dnd-toolkit",
   "productName": "DnD Toolkit",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "Umfassendes D&D 5e Toolkit für Dungeon Master – Händler, Encounter, Städte und mehr",
   "main": "main.js",
   "author": "Nic",

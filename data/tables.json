@@ -167,6 +167,80 @@
       { "name": "Porträt, das die Augen verdreht", "preis": "55 gp", "desc": "Nur wenn niemand direkt hinsieht." }
     ]
   },
+  "npc": {
+    "rollen": [
+      "Bauer/Bäuerin", "Stadtwache", "Priester/in", "Gelehrte/r", "Barde", "Söldner/in", "Dieb/in", "Adlige/r",
+      "Handwerker/in", "Fischer/in", "Jäger/in", "Fuhrmann/-frau", "Heiler/in", "Bettler/in", "Schreiber/in",
+      "Magier/in", "Wirt/in", "Stallknecht/-magd", "Totengräber/in", "Kräuterkundige/r", "Kapitän/in", "Waisenkind",
+      "Kopfgeldjäger/in", "Pilger/in", "Straßenkünstler/in", "Ratsmitglied", "Schmuggler/in", "Wanderprediger/in"
+    ],
+    "aussehen": [
+      "auffällige Narbe quer über die Wange", "ungewöhnlich helle Augen", "fehlt ein Finger an der linken Hand",
+      "trägt einen zu großen Mantel", "grauer Bart bis zur Brust", "kahlrasierter Kopf mit Tätowierung",
+      "hinkt merklich beim Gehen", "erstaunlich gepflegte Hände", "ständig rußverschmiertes Gesicht",
+      "trägt eine verblichene Uniform", "auffällig viel Schmuck", "verbunden über einem Auge",
+      "sehr kleinwüchsig, aber breitschultrig", "hagere Gestalt mit hohler Wange", "leuchtend rote Haare, streng geflochten",
+      "eine Tätowierung, die im Dunkeln schwach leuchtet", "trägt immer Handschuhe – auch im Sommer",
+      "schiefer Zahn, sichtbar beim Lächeln", "riecht deutlich nach Kräutern", "goldener Ohrring mit fremdem Zeichen"
+    ],
+    "motivation": [
+      "will die eigene Familie beschützen", "sucht Rache für ein altes Unrecht", "träumt von einem Leben in der großen Stadt",
+      "will endlich als Meister anerkannt werden", "häuft heimlich Geld für die Flucht an", "sucht ein verschollenes Geschwisterkind",
+      "will eine alte Schuld begleichen", "hofft auf die Gunst eines Adligen", "will beweisen, dass die Legenden wahr sind",
+      "sehnt sich nach Ruhe und einem eigenen Hof", "möchte einen Feind zu Fall bringen", "sucht Heilung für ein krankes Kind",
+      "will das Erbe der Eltern zurück", "strebt nach Wissen um jeden Preis", "will einfach nur überleben"
+    ],
+    "bindung": [
+      "einem alten Hund, der überall mitkommt", "dem Grab der verstorbenen Ehefrau", "einem Ring der Großmutter",
+      "der Werkstatt, die seit Generationen der Familie gehört", "einem Kind aus der Nachbarschaft, das wie eigenes ist",
+      "einem Brief, der nie beantwortet wurde", "der Dorfgemeinschaft, die einst Zuflucht bot",
+      "einem Schwur, den niemand mehr einfordert", "dem letzten verbliebenen Familienerbstück", "einem geheimen Liebesverhältnis"
+    ],
+    "makel": [
+      "trinkt zu viel, wenn niemand hinsieht", "kann kein Blut sehen", "vertraut den falschen Leuten",
+      "redet zu viel, wenn nervös", "hält Versprechen nur, solange es nützt", "ist tief abergläubisch",
+      "kann Schulden nicht widerstehen", "reagiert auf Kritik unverhältnismäßig heftig", "vergisst Gesichter sofort",
+      "kann nicht Nein sagen", "hortet nutzlose Dinge", "ist unfähig zu lügen – zum eigenen Nachteil"
+    ],
+    "geheimnisse": [
+      "hat einen Mord miterlebt und geschwiegen", "ist heimlich verschuldet bei gefährlichen Leuten",
+      "trägt einen falschen Namen", "hat einen Pakt mit etwas geschlossen, das nicht menschlich war",
+      "verbirgt eine magische Begabung", "ist heimlich Anhänger eines verbotenen Kults",
+      "hat einst dieselbe Person verraten, der jetzt gedient wird", "besitzt einen gestohlenen Gegenstand von Bedeutung",
+      "weiß, wo eine Leiche vergraben liegt", "ist nicht das, wofür alle es halten – buchstäblich",
+      "spioniert für eine fremde Macht", "hat eine Familie, von der hier niemand weiß"
+    ],
+    "einstellung": [
+      { "label": "Freundlich", "desc": "Hilft gern, wenn es nicht zu teuer wird." },
+      { "label": "Gleichgültig", "desc": "Muss erst überzeugt werden." },
+      { "label": "Misstrauisch", "desc": "Erwartet Hintergedanken." },
+      { "label": "Feindselig", "desc": "Braucht guten Grund, überhaupt zu reden." },
+      { "label": "Ehrfürchtig", "desc": "Beeindruckt vom Ruf der Gruppe." }
+    ]
+  },
+  "loot": {
+    "edelsteine": {
+      "10": ["Azurit", "Blauer Quarz", "Hämatit", "Malachit", "Obsidian", "Tigerauge", "Türkis", "Lapislazuli"],
+      "50": ["Blutstein", "Karneol", "Chalzedon", "Citrin", "Jaspis", "Mondstein", "Onyx", "Zirkon"],
+      "100": ["Bernstein", "Amethyst", "Chrysoberyll", "Granat", "Jade", "Perle", "Spinell", "Turmalin"],
+      "500": ["Alexandrit", "Aquamarin", "Schwarze Perle", "Blauer Spinell", "Topas"],
+      "1000": ["Schwarzer Opal", "Blauer Saphir", "Smaragd", "Feueropal", "Opal", "Rubin (klein)"],
+      "5000": ["Schwarzer Saphir", "Diamant", "Jacinth", "Rubin (makellos)"]
+    },
+    "kunst": {
+      "25": ["Silberner Becher mit Gravur", "Geschnitzte Knochenfigur", "Kleiner Goldarmreif", "Bestickte Seidenborte", "Schwarzer Samtumhang mit Silberfaden", "Kupferkelch mit Silberfiligran", "Paar gravierte Würfel aus Elfenbein", "Kleines Porträt eines Adligen"],
+      "250": ["Goldring mit Blutsteinen", "Geschnitzte Elfenbeinstatuette", "Goldarmreif mit Edelsteinbesatz", "Silberkette mit Edelsteinanhänger", "Bronzekrone", "Seidenrobe mit Goldstickerei", "Großer Wandteppich feinster Machart"],
+      "750": ["Silberkelch mit Mondsteinen", "Silbernes Langschwert mit Jettgriff", "Harfe aus exotischem Holz mit Elfenbein", "Kleiner Goldgötze", "Goldener Kamm in Drachenform mit rotem Granatauge"],
+      "2500": ["Feine Goldkette mit Feueropal", "Altes Meisterwerk-Gemälde", "Bestickte Seiden-und-Samt-Robe mit Mondsteinen", "Platinarmreif mit Saphir", "Vergoldete Zeremonienmaske"],
+      "7500": ["Juwelenbesetzte Goldkrone", "Juwelenbesetzter Platinring", "Kleine Goldstatuette mit Rubinen", "Goldkelch mit Smaragden", "Goldenes Schmuckkästchen mit Platinfiligran"]
+    },
+    "stufen": [
+      { "id": "t1", "label": "HG 0–4", "muenzen": { "km": [6, 6, 100], "sm": [3, 6, 100], "gm": [2, 6, 10] }, "wertsachen": ["10", "50", "25"], "wertAnzahl": [2, 6], "magieChance": 0.5, "magieAnzahl": [1, 3], "raritaeten": ["Common", "Uncommon"] },
+      { "id": "t2", "label": "HG 5–10", "muenzen": { "km": [2, 6, 100], "sm": [2, 6, 1000], "gm": [6, 6, 100], "pm": [3, 6, 10] }, "wertsachen": ["50", "100", "250"], "wertAnzahl": [2, 8], "magieChance": 0.65, "magieAnzahl": [1, 4], "raritaeten": ["Uncommon", "Rare"] },
+      { "id": "t3", "label": "HG 11–16", "muenzen": { "gm": [4, 6, 1000], "pm": [5, 6, 100] }, "wertsachen": ["500", "1000", "750", "2500"], "wertAnzahl": [3, 10], "magieChance": 0.75, "magieAnzahl": [1, 4], "raritaeten": ["Rare", "Very Rare"] },
+      { "id": "t4", "label": "HG 17+", "muenzen": { "gm": [12, 6, 1000], "pm": [8, 6, 1000] }, "wertsachen": ["1000", "5000", "2500", "7500"], "wertAnzahl": [4, 12], "magieChance": 0.85, "magieAnzahl": [1, 6], "raritaeten": ["Very Rare", "Legendary"] }
+    ]
+  },
   "stadt": {
     "namePraefix": ["Alten", "Grau", "Silber", "Raben", "Nebel", "Stein", "Grün", "Wolfs", "Königs", "Falken", "Dorn", "Eisen", "Gold", "Weiden", "Sturm", "Bären"],
     "nameSuffix": ["furt", "hafen", "bruck", "heim", "tal", "wacht", "berg", "feld", "münde", "hagen", "stein", "brunn", "dorf", "au", "moor"],
