@@ -28,12 +28,21 @@
       "data/**/*"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "Nic Klops",
+      "legalTrademarks": "MIT-Lizenz",
+      "verifyUpdateCodeSignature": false
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "DnD-Toolkit-Setup-${version}.${ext}",
+      "shortcutName": "DnD Toolkit",
+      "uninstallDisplayName": "DnD Toolkit ${version}"
     },
     "publish": {
       "provider": "github",
